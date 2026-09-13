@@ -23,10 +23,10 @@ export class PrintSlipHandler {
       booking.service_name?.toLowerCase().includes('hospitalization')
 
     const docTitle = isIPD ? 'IPD Admission Ticket' : 'OPD Consultation Slip'
-    const isNewPatient = booking.isOld === false || booking.is_old === false
-    const patientStatusLabel = isNewPatient
-      ? ' (नया मरीज)'
-      : ' (Old Patient पुराना मरीज)'
+    const isOldPatient = Boolean(booking.isOld || booking.is_old)
+    const patientStatusLabel = isOldPatient
+      ? ' (Old Patient पुराना मरीज)'
+      : ' (नया मरीज)'
 
     const tokenDisplay = booking.token_number
       ? String(booking.token_number).startsWith('T-')

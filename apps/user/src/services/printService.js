@@ -32,7 +32,7 @@ function mergeSlipFields(row, patient, doctorSpec) {
     district: row.district || patient?.district || '',
     pinCode: row.pinCode || patient?.pinCode || patient?.pin_code || '',
     uhid: row.uhid || patient?.uhid || 'KGN-PENDING',
-    isOld: row.isOld ?? row.is_old ?? patient?.isOld ?? patient?.is_old ?? null,
+    isOld: Boolean(row.isOld || row.is_old || patient?.isOld || patient?.is_old),
     doctor_specialization: row.doctor_specialization || doctorSpec || '',
     source_label: SOURCE_LABELS[source] || '—',
   }

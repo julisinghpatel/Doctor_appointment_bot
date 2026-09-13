@@ -22,8 +22,8 @@ function SingleSlipCard({ booking }) {
 
   const isIPD = booking.type === 'HOSPITALIZATION' || booking.service_name?.toLowerCase().includes('ipd') || booking.service_name?.toLowerCase().includes('hospitalization')
   const docTitle = isIPD ? 'IPD Admission Ticket' : 'OPD Consultation Slip'
-  const isNewPatient = booking.isOld === false || booking.is_old === false
-  const patientStatusLabel = isNewPatient ? ' (नया मरीज)' : ' (Old Patient पुराना मरीज)'
+  const isOldPatient = Boolean(booking.isOld || booking.is_old)
+  const patientStatusLabel = isOldPatient ? ' (Old Patient पुराना मरीज)' : ' (नया मरीज)'
 
   return (
     <div className={`${styles.slipCard} ${isIPD ? styles.ipdSlipCard : ''}`}>
