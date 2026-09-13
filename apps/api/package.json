@@ -7,7 +7,11 @@
     "start": "node src/app.js",
     "seed": "node src/seed.js",
     "db:sync-indexes": "node src/scripts/sync-indexes.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate": "./bin/dbmate up",
+    "db:rollback": "./bin/dbmate rollback",
+    "db:status": "./bin/dbmate status",
+    "db:new": "./bin/dbmate new"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -17,7 +21,8 @@
     "express": "^4.21.0",
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.6.0"
+    "mongoose": "^8.6.0",
+    "postgres": "^3.4.7"
   },
   "devDependencies": {
     "vitest": "^4.1.11"
