@@ -101,9 +101,12 @@ describe('toObjectIdString', () => {
     expect(typeof oid).toBe('object')
     expect(toObjectIdString(oid)).toBe('6a97371ad87abb2ebcdb4f0c')
   })
-  it('rejects garbage to null (names, numbers, short ids, nullish)', () => {
+  it('accepts numeric IDs (Postgres path)', () => {
+    expect(toObjectIdString(1)).toBe(1)
+    expect(toObjectIdString('42')).toBe(42)
+  })
+  it('rejects garbage to null (names, short non-numeric strings, nullish)', () => {
     expect(toObjectIdString('General Consultation')).toBeNull()
-    expect(toObjectIdString(1)).toBeNull()
     expect(toObjectIdString('abc123')).toBeNull()
     expect(toObjectIdString(null)).toBeNull()
     expect(toObjectIdString(undefined)).toBeNull()

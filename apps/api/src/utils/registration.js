@@ -22,14 +22,25 @@ function digitsOnly(raw) {
 }
 
 /**
- * Coerce a possible Mongo id to its 24-hex string form, or null.
- * Accepts valid strings AND ObjectId instances (Mongoose documents hand
- * back ObjectId objects — e.g. the WhatsApp bot's selectedDoctorId —
- * while the frontend sends plain strings). Anything else → null.
+ * Coerce a numeric Postgres ID, valid string ID, or 24-hex Mongo ObjectId.
+ * Accepts numbers, numeric strings, valid 24-hex strings, AND ObjectId/model instances.
+ * Anything non-numeric and non-ObjectId → null.
  */
 export function toObjectIdString(id) {
-  if (typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id)) return id
-  if (id && typeof id === 'object' && /^[0-9a-fA-F]{24}$/.test(String(id))) return String(id)
+  if (id === null || id === undefined || id === '') return null
+  if (typeof id === 'number' && !isNaN(id)) return id
+  if (typeof id === 'string') {
+    const str = id.trim()
+    if (/^\d+$/.test(str)) return parseInt(str, 10)
+    if (/^[0-9a-fA-F]{24}$/.test(str)) return str
+  }
+  if (id && typeof id === 'object') {
+    const val = id._id !== undefined ? id._id : (id.id !== undefined ? id.id : null)
+    if (val !== null && val !== id) return toObjectIdString(val)
+    const str = String(id).trim()
+    if (/^\d+$/.test(str)) return parseInt(str, 10)
+    if (/^[0-9a-fA-F]{24}$/.test(str)) return str
+  }
   return null
 }
 

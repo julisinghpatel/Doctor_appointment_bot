@@ -216,6 +216,7 @@ export const opdHandler = {
         pinCode: state.stateData.pinCode || '',
         doctorId: state.selectedDoctorId,
         departmentId: state.stateData.departmentId,
+        serviceId: state.selectedServiceId || null,
         preferredDate: state.selectedDate,
         problemDescription: state.stateData.problem,
         type: 'OPD',

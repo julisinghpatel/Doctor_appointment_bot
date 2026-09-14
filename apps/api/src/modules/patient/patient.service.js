@@ -107,6 +107,7 @@ class PatientService {
 
     let doctorId = toObjectIdString(data.doctorId)
     let departmentId = toObjectIdString(data.departmentId)
+    let serviceId = toObjectIdString(data.serviceId)
 
     if (doctorId && !departmentId) {
       try {
@@ -130,6 +131,7 @@ class PatientService {
       doctorId,
       departmentId,
       patientId: patient.id,
+      serviceId,
       preferredDate,
       problemDescription: data.problemDescription || '',
       type,
