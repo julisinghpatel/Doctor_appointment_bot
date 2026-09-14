@@ -23,16 +23,20 @@ function mergeSlipFields(row, patient, doctorSpec) {
   // Channel defaults to whatsapp unless the row says otherwise; a staff
   // code without a channel means the offline front desk.
   const source = row.booking_source || row.bookingSource || (row.created_by ? 'offline' : 'whatsapp')
+  const pObj = (row.patientId && typeof row.patientId === 'object') ? row.patientId : {}
   return {
     ...row,
     booking_source: source,
-    age: row.age ?? patient?.age ?? null,
-    gender: row.gender || patient?.gender || '',
-    address: row.address || patient?.address || '',
-    district: row.district || patient?.district || '',
-    pinCode: row.pinCode || patient?.pinCode || patient?.pin_code || '',
-    uhid: row.uhid || patient?.uhid || 'KGN-PENDING',
-    isOld: Boolean(row.isOld || row.is_old || patient?.isOld || patient?.is_old),
+    patient_name: row.patient_name || pObj.name || row.name || patient?.name || '',
+    mobile: row.mobile || row.patient_phone || pObj.phone || patient?.phone || '',
+    age: row.age ?? pObj.age ?? patient?.age ?? null,
+    gender: row.gender || pObj.gender || patient?.gender || '',
+    address: row.address || pObj.address || patient?.address || '',
+    district: row.district || pObj.district || patient?.district || '',
+    pinCode: row.pinCode || pObj.pinCode || patient?.pinCode || patient?.pin_code || '',
+    uhid: row.uhid || pObj.uhid || patient?.uhid || 'KGN-PENDING',
+    isOld: Boolean(row.isOld || row.is_old || pObj.isOld || patient?.isOld || patient?.is_old),
+    doctor_name: row.doctor_name || row.doctorId?.name || '',
     doctor_specialization: row.doctor_specialization || doctorSpec || '',
     source_label: SOURCE_LABELS[source] || '—',
   }
@@ -55,13 +59,14 @@ export const printService = {
       return mergeSlipFields(booking, patient, doctor?.specialization)
     }
 
-    // Real mode: booking detail (populated doctor + patient age/gender) …
+    // Real mode: booking detail (populated doctor + patient age/gender/address) …
     const detail = await bookingService.getBooking(booking.id)
     // … plus the patient record (address/district/UHID/isOld).
+    const targetPatientId = detail.patient_id || detail.patientId?.id || (typeof detail.patientId === 'number' ? detail.patientId : null)
     let patient = null
-    if (detail.patient_id) {
+    if (targetPatientId) {
       try {
-        patient = await patientService.getPatient(detail.patient_id)
+        patient = await patientService.getPatient(targetPatientId)
       } catch {
         patient = null
       }
