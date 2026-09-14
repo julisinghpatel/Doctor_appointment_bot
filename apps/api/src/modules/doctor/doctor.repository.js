@@ -1,9 +1,5 @@
-import Doctor from './doctor.model.js'
+import sql from '../../config/database.js'
 
-/**
- * Map incoming data (which may use old alias names) → canonical schema fields.
- * Accepts either alias and stores only the canonical field.
- */
 function prepareDoctorData(data) {
   const payload = { ...data }
 
@@ -28,50 +24,168 @@ function prepareDoctorData(data) {
   return payload
 }
 
+function mapDoctor(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    _id: row.id,
+    name: row.name,
+    qualification: row.qualification || '',
+    qualifications: row.qualification || '',
+    specialty: row.specialty || '',
+    specialization: row.specialization || row.specialty || '',
+    AOF: row.specialty || '',
+    experienceYears: row.experience_years || 0,
+    consultationFee: Number(row.consultation_fee || 0),
+    isActive: row.is_active,
+    image: row.image_url || '',
+    imageUrl: row.image_url || '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    departmentId: row.department_id ? {
+      id: row.department_id,
+      _id: row.department_id,
+      name: row.department_name || '',
+    } : null,
+  }
+}
+
 class DoctorRepository {
   async findAll(filter = {}) {
-    return Doctor.find(filter).populate('departmentId', 'name').sort({ name: 1 })
+    let rows
+    if (filter.departmentId) {
+      rows = await sql`
+        SELECT d.*, dep.name as department_name
+        FROM doctors d
+        LEFT JOIN departments dep ON d.department_id = dep.id
+        WHERE d.department_id = ${filter.departmentId}
+        ORDER BY d.name ASC
+      `
+    } else {
+      rows = await sql`
+        SELECT d.*, dep.name as department_name
+        FROM doctors d
+        LEFT JOIN departments dep ON d.department_id = dep.id
+        ORDER BY d.name ASC
+      `
+    }
+    return rows.map(mapDoctor)
   }
 
   async findActive() {
-    return Doctor.find({ isActive: { $ne: false } }).populate('departmentId', 'name').sort({ name: 1 })
+    const rows = await sql`
+      SELECT d.*, dep.name as department_name
+      FROM doctors d
+      LEFT JOIN departments dep ON d.department_id = dep.id
+      WHERE d.is_active = true
+      ORDER BY d.name ASC
+    `
+    return rows.map(mapDoctor)
   }
 
   async findByDepartment(departmentId, { activeOnly = true } = {}) {
-    const filter = { departmentId }
-    if (activeOnly) filter.isActive = { $ne: false }
-    return Doctor.find(filter).populate('departmentId', 'name').sort({ name: 1 })
+    let rows
+    if (activeOnly) {
+      rows = await sql`
+        SELECT d.*, dep.name as department_name
+        FROM doctors d
+        LEFT JOIN departments dep ON d.department_id = dep.id
+        WHERE d.department_id = ${departmentId} AND d.is_active = true
+        ORDER BY d.name ASC
+      `
+    } else {
+      rows = await sql`
+        SELECT d.*, dep.name as department_name
+        FROM doctors d
+        LEFT JOIN departments dep ON d.department_id = dep.id
+        WHERE d.department_id = ${departmentId}
+        ORDER BY d.name ASC
+      `
+    }
+    return rows.map(mapDoctor)
   }
 
   async findById(id) {
-    return Doctor.findById(id).populate('departmentId', 'name')
+    if (!id) return null
+    const [row] = await sql`
+      SELECT d.*, dep.name as department_name
+      FROM doctors d
+      LEFT JOIN departments dep ON d.department_id = dep.id
+      WHERE d.id = ${id}
+    `
+    return mapDoctor(row)
   }
 
   async create(data) {
-    return Doctor.create(prepareDoctorData(data))
+    const payload = prepareDoctorData(data)
+    const [row] = await sql`
+      INSERT INTO doctors (
+        name, department_id, qualification, specialization, specialty,
+        experience_years, consultation_fee, is_active, image_url
+      ) VALUES (
+        ${payload.name},
+        ${payload.departmentId || null},
+        ${payload.qualification || ''},
+        ${payload.specialization || payload.specialty || 'General'},
+        ${payload.specialty || ''},
+        ${payload.experienceYears || 0},
+        ${payload.consultationFee || 0},
+        ${payload.isActive !== undefined ? payload.isActive : true},
+        ${payload.image || ''}
+      )
+      RETURNING *
+    `
+    return this.findById(row.id)
   }
 
   async update(id, data) {
-    return Doctor.findByIdAndUpdate(id, { ...prepareDoctorData(data), updatedAt: new Date() }, { new: true }).populate('departmentId', 'name')
+    const payload = prepareDoctorData(data)
+    const [row] = await sql`
+      UPDATE doctors
+      SET
+        name = COALESCE(${payload.name}, name),
+        department_id = COALESCE(${payload.departmentId}, department_id),
+        qualification = COALESCE(${payload.qualification}, qualification),
+        specialization = COALESCE(${payload.specialization}, specialization),
+        specialty = COALESCE(${payload.specialty}, specialty),
+        experience_years = COALESCE(${payload.experienceYears}, experience_years),
+        consultation_fee = COALESCE(${payload.consultationFee}, consultation_fee),
+        is_active = COALESCE(${payload.isActive}, is_active),
+        image_url = COALESCE(${payload.image}, image_url),
+        updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING id
+    `
+    if (!row) return null
+    return this.findById(row.id)
   }
 
   async delete(id) {
-    return Doctor.findByIdAndDelete(id)
+    const doc = await this.findById(id)
+    if (!doc) return null
+    await sql`DELETE FROM doctors WHERE id = ${id}`
+    return doc
   }
 
   async toggleActive(id) {
-    const doc = await Doctor.findById(id)
-    if (!doc) return null
-    doc.isActive = !doc.isActive
-    return doc.save()
+    const [row] = await sql`
+      UPDATE doctors
+      SET is_active = NOT is_active, updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING id
+    `
+    if (!row) return null
+    return this.findById(row.id)
   }
 
   async countActive() {
-    return Doctor.countDocuments({ isActive: true })
+    const [row] = await sql`SELECT count(*) FROM doctors WHERE is_active = true`
+    return Number(row.count)
   }
 
   async countAll() {
-    return Doctor.countDocuments()
+    const [row] = await sql`SELECT count(*) FROM doctors`
+    return Number(row.count)
   }
 }
 

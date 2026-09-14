@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import User from './user.model.js'
+import userRepo from './user.repository.js'
 import idsService from '../ids/ids.service.js'
 import { AppError, asyncHandler } from '../../middleware/errorHandler.js'
 
@@ -18,12 +18,14 @@ export const userController = {
     const { role, search } = req.query
     const filter = {}
     if (role) filter.role = role
-    if (search) {
-      const q = new RegExp(search, 'i')
-      filter.$or = [{ name: q }, { email: q }, { staffCode: q }]
-    }
-    const users = await User.find(filter).sort({ createdAt: -1 }).limit(200)
-    res.json(users)
+    if (search) filter.search = search
+    const users = await userRepo.find(filter)
+    // Exclude passwordHash in output
+    const safeUsers = users.map(u => {
+      const { passwordHash, ...rest } = u
+      return rest
+    })
+    res.json(safeUsers)
   }),
 
   /** POST /api/users — create staff (superadmin/admin). */
@@ -34,12 +36,12 @@ export const userController = {
     if (!email || !password || password.length < 6) throw new AppError('Valid email and 6+ char password are required', 400)
     if (!role) throw new AppError('Role is required', 400)
 
-    const exists = await User.findOne({ email: String(email).toLowerCase() })
+    const exists = await userRepo.findByEmail(email)
     if (exists) throw new AppError('Email already registered', 409)
 
     const passwordHash = await bcrypt.hash(password, 10)
     const staffCode = await idsService.generateStaffCode(role)
-    const user = await User.create({
+    const user = await userRepo.create({
       name: String(name).trim(),
       email: String(email).toLowerCase(),
       passwordHash,
@@ -52,7 +54,8 @@ export const userController = {
       address: address || '',
       activeDays: Array.isArray(activeDays) && activeDays.length > 0 ? activeDays : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     })
-    res.status(201).json(user)
+    const { passwordHash: _, ...safeUser } = user
+    res.status(201).json(safeUser)
   }),
 
   /** PUT /api/users/:id — update staff (superadmin/admin). */
@@ -71,18 +74,18 @@ export const userController = {
     if (isActive !== undefined) update.isActive = !!isActive
     if (password) update.passwordHash = await bcrypt.hash(password, 10)
 
-    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true })
+    const user = await userRepo.update(req.params.id, update)
     if (!user) throw new AppError('User not found', 404)
-    res.json(user)
+    const { passwordHash: _, ...safeUser } = user
+    res.json(safeUser)
   }),
 
   /** PATCH /api/users/:id/toggle — toggle active flag. */
   toggleActive: asyncHandler(async (req, res) => {
     assertCanManageStaff(req)
-    const user = await User.findById(req.params.id)
+    const user = await userRepo.toggleActive(req.params.id)
     if (!user) throw new AppError('User not found', 404)
-    user.isActive = !user.isActive
-    await user.save()
-    res.json(user)
+    const { passwordHash: _, ...safeUser } = user
+    res.json(safeUser)
   }),
 }

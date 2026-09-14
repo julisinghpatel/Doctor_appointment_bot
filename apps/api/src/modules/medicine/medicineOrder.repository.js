@@ -1,0 +1,115 @@
+import sql from '../../config/database.js'
+
+function mapMedicineOrder(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    _id: row.id,
+    orderId: row.order_id,
+    prescriptionUrl: row.prescription_url || '',
+    items: typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []),
+    status: row.status,
+    staffNotes: row.staff_notes || '',
+    totalPrice: Number(row.total_price || 0),
+    createdAt: row.created_at,
+    patientId: row.patient_id ? {
+      id: row.patient_id,
+      _id: row.patient_id,
+      name: row.patient_name || '',
+      phone: row.patient_phone || '',
+      uhid: row.patient_uhid !== null && row.patient_uhid !== undefined ? String(row.patient_uhid) : null,
+    } : null,
+  }
+}
+
+const SELECT_ORDER_WITH_PATIENT = sql`
+  SELECT
+    mo.*,
+    p.name AS patient_name,
+    p.phone AS patient_phone,
+    p.uhid AS patient_uhid
+  FROM medicine_orders mo
+  LEFT JOIN patients p ON mo.patient_id = p.id
+`
+
+class MedicineOrderRepository {
+  async findAll(filter = {}, { page = 1, limit = 10 } = {}) {
+    page = parseInt(page, 10) || 1
+    limit = parseInt(limit, 10) || 10
+    const offset = (page - 1) * limit
+
+    const conditions = []
+    if (filter.status) conditions.push(sql`mo.status = ${filter.status}`)
+    if (filter.patientIds && Array.isArray(filter.patientIds) && filter.patientIds.length > 0) {
+      conditions.push(sql`mo.patient_id IN ${sql(filter.patientIds)}`)
+    } else if (filter.patientIds && Array.isArray(filter.patientIds) && filter.patientIds.length === 0) {
+      return { data: [], total: 0, page, limit, totalPages: 0 }
+    }
+
+    const whereClause = conditions.length > 0
+      ? sql`WHERE ${conditions.reduce((acc, curr) => sql`${acc} AND ${curr}`)}`
+      : sql``
+
+    const rows = await sql`
+      ${SELECT_ORDER_WITH_PATIENT}
+      ${whereClause}
+      ORDER BY mo.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `
+
+    const [totalRow] = await sql`SELECT count(*) FROM medicine_orders mo ${whereClause}`
+    const total = Number(totalRow.count)
+
+    return {
+      data: rows.map(mapMedicineOrder),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    }
+  }
+
+  async findById(id) {
+    if (!id) return null
+    const [row] = await sql`
+      ${SELECT_ORDER_WITH_PATIENT}
+      WHERE mo.id = ${id}
+    `
+    return mapMedicineOrder(row)
+  }
+
+  async create(data) {
+    const items = data.items || []
+    const [row] = await sql`
+      INSERT INTO medicine_orders (
+        order_id, patient_id, delivery_address, prescription_url, items, status, staff_notes, total_price
+      ) VALUES (
+        ${data.orderId},
+        ${data.patientId || null},
+        ${data.deliveryAddress || data.address || 'N/A'},
+        ${data.prescriptionUrl || ''},
+        ${sql.json(items)},
+        ${data.status || 'pending'},
+        ${data.staffNotes || ''},
+        ${data.totalPrice || 0}
+      )
+      RETURNING id
+    `
+    return this.findById(row.id)
+  }
+
+  async updateStatus(id, { status, staffNotes }) {
+    const [row] = await sql`
+      UPDATE medicine_orders
+      SET
+        status = COALESCE(${status}, status),
+        staff_notes = COALESCE(${staffNotes}, staff_notes)
+      WHERE id = ${id}
+      RETURNING id
+    `
+    if (!row) return null
+    return this.findById(row.id)
+  }
+}
+
+export default new MedicineOrderRepository()

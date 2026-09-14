@@ -1,6 +1,6 @@
 import patientService from './patient.service.js'
 import bookingRepo from '../booking/booking.repository.js'
-import MedicineOrder from '../medicine/medicineOrder.model.js'
+import medOrderRepo from '../medicine/medicineOrder.repository.js'
 
 export const patientController = {
   async search(req, res, next) {
@@ -15,7 +15,7 @@ export const patientController = {
         const filtered = q
           ? patients.filter((p) => p.name.toLowerCase().includes(q) || (p.phone || '').includes(q))
           : patients
-        return res.json(filtered.map((p) => p.toJSON()))
+        return res.json(filtered)
       }
       const filters = {
         isOld: req.query.isOld,
@@ -26,18 +26,18 @@ export const patientController = {
       // Pharmacy sees only patients linked to medicine orders.
       let scoped = patients
       if (req.admin?.role === 'pharmacy') {
-        const linkedIds = await MedicineOrder.distinct('patientId')
-        const linked = new Set(linkedIds.map(String))
-        scoped = patients.filter((p) => linked.has(String(p._id)))
+        const { data: orders } = await medOrderRepo.findAll({}, { limit: 10000 })
+        const linked = new Set(orders.map(o => String(o.patientId?.id || o.patientId || '')).filter(Boolean))
+        scoped = patients.filter((p) => linked.has(String(p.id)))
       }
       // Enrich with booking count + last visit
       const enriched = await Promise.all(
         scoped.map(async (p) => {
-          const pJson = p.toJSON()
-          const bookings = await bookingRepo.findAll({ patientId: p._id }, { page: 1, limit: 1 })
-          pJson.totalBookings = bookings.total
-          pJson.lastVisit = bookings.data[0]?.createdAt || p.lastVisited || null
-          return pJson
+          const pData = { ...p }
+          const bookings = await bookingRepo.findAll({ patientId: p.id }, { page: 1, limit: 1 })
+          pData.totalBookings = bookings.total
+          pData.lastVisit = bookings.data[0]?.createdAt || p.lastVisited || null
+          return pData
         })
       )
 
@@ -51,21 +51,17 @@ export const patientController = {
       if (!patient) return res.status(404).json({ success: false, message: 'Patient not found' })
 
       // Get their bookings
-      const bookings = await bookingRepo.findAll({ patientId: patient._id }, { page: 1, limit: 50 })
+      const bookings = await bookingRepo.findAll({ patientId: patient.id }, { page: 1, limit: 50 })
 
-      res.json({ ...patient.toJSON(), bookings: bookings.data })
+      res.json({ ...patient, bookings: bookings.data })
     } catch (err) { next(err) }
   },
 
   /**
    * POST /api/patients/register — receptionist offline registration.
-   * Mirrors the WhatsApp handleReview flow via the shared core, so both
-   * channels produce identical records (same UHID, same token series).
    */
   async register(req, res, next) {
     try {
-      // Source follows the channel, not the client: the receptionist Register
-      // page is the offline desk flow; admin/superadmin entries stay 'admin'.
       const source = req.admin?.role === 'receptionist' ? 'offline' : 'admin'
       const { patient, booking } = await patientService.registerPatientWithBooking(
         req.body,

@@ -29,7 +29,7 @@ router.get('/doctors/:id', doctorController.getById)
 // Public Appointment Booking Submission for website frontend
 router.post('/bookings', async (req, res, next) => {
   try {
-    const Doctor = (await import('../modules/doctor/doctor.model.js')).default
+    const doctorRepo = (await import('../modules/doctor/doctor.repository.js')).default
     const patientService = (await import('../modules/patient/patient.service.js')).default
 
     let doctorId = req.body.doctorId
@@ -37,8 +37,9 @@ router.post('/bookings', async (req, res, next) => {
 
     // Find doctor by name if doctorId not passed directly
     if (!doctorId && doctorName) {
-      const docObj = await Doctor.findOne({ name: new RegExp(doctorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') })
-      if (docObj) doctorId = docObj._id
+      const doctors = await doctorRepo.findAll()
+      const docObj = doctors.find(d => d.name.toLowerCase().includes(String(doctorName).toLowerCase()))
+      if (docObj) doctorId = docObj.id
     }
 
     const registrationData = {

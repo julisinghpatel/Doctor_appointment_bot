@@ -1,12 +1,12 @@
-import Department from './department.model.js'
+import departmentRepo from './department.repository.js'
 
 class DepartmentService {
   async getActiveDepartments() {
-    return Department.find({ isActive: true }).sort({ name: 1 })
+    return departmentRepo.findActive()
   }
 
   async createDepartment(data) {
-    return Department.create(data)
+    return departmentRepo.create(data)
   }
 }
 

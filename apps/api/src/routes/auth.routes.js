@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
-import User from '../modules/user/user.model.js'
+import userRepo from '../modules/user/user.repository.js'
 import {
   generateTokens,
   storeRefreshToken,
@@ -19,8 +19,8 @@ router.post('/login', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Email and password are required' })
     }
 
-    const user = await User.findOne({ email: email.toLowerCase(), isActive: true })
-    if (!user) {
+    const user = await userRepo.findByEmail(email)
+    if (!user || !user.isActive) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' })
     }
 
@@ -30,18 +30,20 @@ router.post('/login', async (req, res, next) => {
     }
 
     const payload = {
-      id: user._id,
+      id: user.id,
       email: user.email,
       role: user.role,
       doctorId: user.doctorId || null,
       staffCode: user.staffCode || null,
     }
     const { accessToken, refreshToken } = generateTokens(payload)
-    await storeRefreshToken(user._id.toString(), refreshToken)
+    await storeRefreshToken(user.id.toString(), refreshToken)
+
+    const { passwordHash: _, ...safeUser } = user
 
     res.json({
       success: true,
-      user: user.toJSON(),
+      user: safeUser,
       token: accessToken,
       refreshToken,
     })
@@ -86,9 +88,10 @@ router.post('/logout', authMiddleware, async (req, res) => {
 /** GET /api/auth/me */
 router.get('/me', authMiddleware, async (req, res, next) => {
   try {
-    const user = await User.findById(req.admin.id)
+    const user = await userRepo.findById(req.admin.id)
     if (!user) return res.status(404).json({ success: false, message: 'User not found' })
-    res.json(user.toJSON())
+    const { passwordHash: _, ...safeUser } = user
+    res.json(safeUser)
   } catch (err) { next(err) }
 })
 

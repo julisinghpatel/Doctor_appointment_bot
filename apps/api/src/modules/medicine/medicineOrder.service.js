@@ -1,11 +1,10 @@
-import MedicineOrder from './medicineOrder.model.js'
+import medOrderRepo from './medicineOrder.repository.js'
 import idsService from '../ids/ids.service.js'
 
 class MedicineOrderService {
   async createOrder(data) {
-    // Sequential order ID via atomic counter (race-safe, replaces countDocuments)
     const orderId = await idsService.generateMedOrderId()
-    return MedicineOrder.create({ ...data, orderId })
+    return medOrderRepo.create({ ...data, orderId })
   }
 }
 

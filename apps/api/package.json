@@ -9,6 +9,7 @@
     "db:sync-indexes": "node src/scripts/sync-indexes.js",
     "test": "vitest run",
     "db:migrate": "./bin/dbmate up",
+    "db:migrate-data": "node migrateDB/index.js",
     "db:rollback": "./bin/dbmate rollback",
     "db:status": "./bin/dbmate status",
     "db:new": "./bin/dbmate new"

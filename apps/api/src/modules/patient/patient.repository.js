@@ -1,86 +1,229 @@
-import Patient from './patient.model.js'
+import sql from '../../config/database.js'
+
+function mapPatient(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    _id: row.id,
+    uhid: row.uhid !== null && row.uhid !== undefined ? String(row.uhid) : null,
+    phone: row.phone || '',
+    name: row.name || '',
+    age: row.age || null,
+    gender: row.gender || null,
+    identityKey: row.identity_key || null,
+    isOld: Boolean(row.is_old),
+    lastVisited: row.last_visited || null,
+    createdAt: row.created_at,
+  }
+}
+
+function buildIdentityKey(phone, name) {
+  const p = String(phone || '').trim()
+  const n = String(name || 'unknown').trim().toLowerCase()
+  return `${p}:${n}`
+}
 
 class PatientRepository {
   async findByPhone(phone) {
-    return Patient.findOne({ phone })
+    if (!phone) return null
+    const [row] = await sql`
+      SELECT * FROM patients
+      WHERE phone = ${phone}
+      LIMIT 1
+    `
+    return mapPatient(row)
   }
 
   async findAllByPhone(phone) {
-    return Patient.find({ phone, name: { $ne: 'Unknown' } }).sort({ createdAt: 1 })
+    if (!phone) return []
+    const rows = await sql`
+      SELECT * FROM patients
+      WHERE phone = ${phone} AND LOWER(name) != 'unknown'
+      ORDER BY created_at ASC
+    `
+    return rows.map(mapPatient)
   }
 
   async findOrCreate(phone, data = {}) {
     const name = data.name ? String(data.name).trim() : ''
 
     if (name && name.toLowerCase() !== 'unknown') {
-      const nameRegex = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
-
       // 1. Try to find existing patient with same phone and name (case-insensitive)
-      let patient = await Patient.findOne({ phone, name: nameRegex })
-      if (patient) {
-        let updated = false
-        if (data.isOld !== undefined && patient.isOld !== data.isOld) {
-          patient.isOld = Boolean(data.isOld)
-          updated = true
+      const [existing] = await sql`
+        SELECT * FROM patients
+        WHERE phone = ${phone} AND LOWER(name) = ${name.toLowerCase()}
+        LIMIT 1
+      `
+      if (existing) {
+        let needsUpdate = false
+        let isOld = existing.is_old
+        let lastVisited = existing.last_visited
+
+        if (data.isOld !== undefined && existing.is_old !== Boolean(data.isOld)) {
+          isOld = Boolean(data.isOld)
+          needsUpdate = true
         }
         if (data.lastVisited) {
-          patient.lastVisited = data.lastVisited
-          updated = true
+          lastVisited = data.lastVisited
+          needsUpdate = true
         }
-        if (updated) await patient.save()
-        return patient
+
+        if (needsUpdate) {
+          const [updated] = await sql`
+            UPDATE patients
+            SET is_old = ${isOld}, last_visited = ${lastVisited}
+            WHERE id = ${existing.id}
+            RETURNING *
+          `
+          return mapPatient(updated)
+        }
+        return mapPatient(existing)
       }
 
       // 2. Check if an 'Unknown' placeholder exists for this phone to upgrade it
-      const unknownPatient = await Patient.findOne({ phone, name: 'Unknown' })
+      const [unknownPatient] = await sql`
+        SELECT * FROM patients
+        WHERE phone = ${phone} AND LOWER(name) = 'unknown'
+        LIMIT 1
+      `
       if (unknownPatient) {
-        return Patient.findByIdAndUpdate(unknownPatient._id, { ...data, name }, { new: true })
+        const [upgraded] = await sql`
+          UPDATE patients
+          SET
+            name = ${name},
+            age = COALESCE(${data.age}, age),
+            gender = COALESCE(${data.gender}, gender),
+            is_old = COALESCE(${data.isOld}, is_old),
+            last_visited = COALESCE(${data.lastVisited}, last_visited)
+          WHERE id = ${unknownPatient.id}
+          RETURNING *
+        `
+        return mapPatient(upgraded)
       }
 
-      // 3. Different name provided for this phone number -> Create a distinct patient record
-      return Patient.create({ phone, ...data, name })
+      // 3. Create a distinct patient record
+      const [newPatient] = await sql`
+        INSERT INTO patients (
+          phone, name, age, gender, is_old, last_visited
+        ) VALUES (
+          ${phone},
+          ${name},
+          ${data.age || null},
+          ${data.gender || null},
+          ${data.isOld !== undefined ? Boolean(data.isOld) : false},
+          ${data.lastVisited || null}
+        )
+        ON CONFLICT (identity_key) DO UPDATE SET
+          is_old = EXCLUDED.is_old,
+          last_visited = COALESCE(EXCLUDED.last_visited, patients.last_visited)
+        RETURNING *
+      `
+      return mapPatient(newPatient)
     }
 
     // 4. Default fallback when name is 'Unknown' or not provided
-    let patient = await Patient.findOne({ phone })
-    if (!patient) {
-      patient = await Patient.create({ phone, name: 'Unknown', ...data })
-    }
-    return patient
+    const [patient] = await sql`
+      SELECT * FROM patients
+      WHERE phone = ${phone}
+      LIMIT 1
+    `
+    if (patient) return mapPatient(patient)
+
+    const [created] = await sql`
+      INSERT INTO patients (
+        phone, name, age, gender, is_old, last_visited
+      ) VALUES (
+        ${phone},
+        'Unknown',
+        ${data.age || null},
+        ${data.gender || null},
+        ${data.isOld !== undefined ? Boolean(data.isOld) : false},
+        ${data.lastVisited || null}
+      )
+      ON CONFLICT (identity_key) DO UPDATE SET phone = EXCLUDED.phone
+      RETURNING *
+    `
+    return mapPatient(created)
   }
 
   async findById(id) {
-    return Patient.findById(id)
+    if (!id) return null
+    const [row] = await sql`
+      SELECT * FROM patients
+      WHERE id = ${id}
+    `
+    return mapPatient(row)
   }
 
   async search(query, filters = {}) {
     const { isOld, sortBy = 'createdAt', sortOrder = 'desc' } = filters
-    const filterQuery = {}
+    const q = query ? `%${query}%` : null
+    const isOldBool = isOld !== undefined && isOld !== null && isOld !== '' ? (isOld === 'true' || isOld === true) : null
 
-    if (isOld !== undefined && isOld !== null && isOld !== '') {
-      filterQuery.isOld = isOld === 'true' || isOld === true
+    // Perform parameterized query based on conditions
+    let rows
+    if (q && isOldBool !== null) {
+      rows = await sql`
+        SELECT * FROM patients
+        WHERE (name ILIKE ${q} OR phone ILIKE ${q})
+          AND is_old = ${isOldBool}
+        ORDER BY created_at DESC
+        LIMIT 100
+      `
+    } else if (q) {
+      rows = await sql`
+        SELECT * FROM patients
+        WHERE (name ILIKE ${q} OR phone ILIKE ${q})
+        ORDER BY created_at DESC
+        LIMIT 100
+      `
+    } else if (isOldBool !== null) {
+      rows = await sql`
+        SELECT * FROM patients
+        WHERE is_old = ${isOldBool}
+        ORDER BY created_at DESC
+        LIMIT 100
+      `
+    } else {
+      rows = await sql`
+        SELECT * FROM patients
+        ORDER BY created_at DESC
+        LIMIT 100
+      `
     }
 
-    if (query) {
-      const regex = new RegExp(query, 'i')
-      filterQuery.$or = [{ name: regex }, { phone: regex }]
-    }
-
-    const sortObj = {}
-    if (sortBy === 'name') sortObj.name = sortOrder === 'asc' ? 1 : -1
-    else if (sortBy === 'lastVisited' || sortBy === 'lastVisit') sortObj.lastVisited = sortOrder === 'asc' ? 1 : -1
-    else if (sortBy === 'isOld') sortObj.isOld = sortOrder === 'asc' ? 1 : -1
-    else sortObj.createdAt = sortOrder === 'asc' ? 1 : -1
-
-    return Patient.find(filterQuery).sort(sortObj).limit(100)
+    return rows.map(mapPatient)
   }
 
   async update(id, data) {
-    return Patient.findByIdAndUpdate(id, data, { new: true })
+    const current = await this.findById(id)
+    if (!current) return null
+
+    const name = data.name !== undefined ? data.name : current.name
+    const phone = data.phone !== undefined ? data.phone : current.phone
+    const age = data.age !== undefined ? data.age : current.age
+    const gender = data.gender !== undefined ? data.gender : current.gender
+    const isOld = data.isOld !== undefined ? Boolean(data.isOld) : current.isOld
+    const lastVisited = data.lastVisited !== undefined ? data.lastVisited : current.lastVisited
+
+    const [row] = await sql`
+      UPDATE patients
+      SET
+        name = ${name},
+        phone = ${phone},
+        age = ${age},
+        gender = ${gender},
+        is_old = ${isOld},
+        last_visited = ${lastVisited}
+      WHERE id = ${id}
+      RETURNING *
+    `
+    return mapPatient(row)
   }
 
   async countAll() {
-    return Patient.countDocuments()
+    const [row] = await sql`SELECT count(*) FROM patients`
+    return Number(row.count)
   }
 }
 
