@@ -205,6 +205,7 @@ class PatientRepository {
     const gender = data.gender !== undefined ? data.gender : current.gender
     const isOld = data.isOld !== undefined ? Boolean(data.isOld) : current.isOld
     const lastVisited = data.lastVisited !== undefined ? data.lastVisited : current.lastVisited
+    const uhid = data.uhid !== undefined ? data.uhid : current.uhid
 
     const [row] = await sql`
       UPDATE patients
@@ -214,7 +215,8 @@ class PatientRepository {
         age = ${age},
         gender = ${gender},
         is_old = ${isOld},
-        last_visited = ${lastVisited}
+        last_visited = ${lastVisited},
+        uhid = ${uhid}
       WHERE id = ${id}
       RETURNING *
     `
