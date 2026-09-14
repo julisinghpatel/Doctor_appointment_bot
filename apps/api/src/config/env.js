@@ -1,6 +1,6 @@
 import 'dotenv/config'
 
-const required = ['MONGODB_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'DATABASE_URL']
+const required = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'DATABASE_URL']
 
 for (const key of required) {
   if (!process.env[key]) {
