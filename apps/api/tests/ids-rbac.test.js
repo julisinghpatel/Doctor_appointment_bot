@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import mongoose from 'mongoose'
 import { normalizePhone } from '../src/utils/phone.js'
-import { toGender, validateRegistration, toObjectIdString } from '../src/utils/registration.js'
+import { toGender, validateRegistration, toSafeId } from '../src/utils/registration.js'
 import { requireRole } from '../src/middleware/rbac.middleware.js'
 import idsService from '../src/modules/ids/ids.service.js'
 
@@ -38,7 +37,7 @@ describe('toGender', () => {
 describe('validateRegistration', () => {
   const validOPD = {
     phone: '9876543210', name: 'Ramesh Kumar', age: 45, gender: 'Male',
-    district: 'Jaunpur', address: 'Civil Lines', doctorId: 'doc1',
+    district: 'Jaunpur', address: 'Civil Lines', doctorId: '1',
     preferredDate: new Date(Date.now() + 86400000).toISOString(), type: 'OPD',
   }
   it('accepts a valid OPD registration', () => {
@@ -92,24 +91,20 @@ describe('requireRole', () => {
   })
 })
 
-describe('toObjectIdString', () => {
-  it('accepts valid 24-hex strings (frontend path)', () => {
-    expect(toObjectIdString('6a97371ad87abb2ebcdb4f0c')).toBe('6a97371ad87abb2ebcdb4f0c')
+describe('toSafeId', () => {
+  it('accepts numeric IDs and numeric strings', () => {
+    expect(toSafeId(1)).toBe(1)
+    expect(toSafeId('42')).toBe(42)
   })
-  it('accepts ObjectId instances (WhatsApp bot path: getId(doc) is an ObjectId object)', () => {
-    const oid = new mongoose.Types.ObjectId('6a97371ad87abb2ebcdb4f0c')
-    expect(typeof oid).toBe('object')
-    expect(toObjectIdString(oid)).toBe('6a97371ad87abb2ebcdb4f0c')
+  it('extracts numeric ID from objects containing id or _id', () => {
+    expect(toSafeId({ id: 100 })).toBe(100)
+    expect(toSafeId({ _id: '200' })).toBe(200)
   })
-  it('accepts numeric IDs (Postgres path)', () => {
-    expect(toObjectIdString(1)).toBe(1)
-    expect(toObjectIdString('42')).toBe(42)
-  })
-  it('rejects garbage to null (names, short non-numeric strings, nullish)', () => {
-    expect(toObjectIdString('General Consultation')).toBeNull()
-    expect(toObjectIdString('abc123')).toBeNull()
-    expect(toObjectIdString(null)).toBeNull()
-    expect(toObjectIdString(undefined)).toBeNull()
-    expect(toObjectIdString('')).toBeNull()
+  it('rejects non-numeric strings and nullish values to null', () => {
+    expect(toSafeId('General Consultation')).toBeNull()
+    expect(toSafeId('abc123')).toBeNull()
+    expect(toSafeId(null)).toBeNull()
+    expect(toSafeId(undefined)).toBeNull()
+    expect(toSafeId('')).toBeNull()
   })
 })

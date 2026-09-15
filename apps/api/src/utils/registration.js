@@ -22,32 +22,28 @@ function digitsOnly(raw) {
 }
 
 /**
- * Coerce a numeric Postgres ID, valid string ID, or 24-hex Mongo ObjectId.
- * Accepts numbers, numeric strings, valid 24-hex strings, AND ObjectId/model instances.
- * Anything non-numeric and non-ObjectId → null.
+ * Coerce a numeric Postgres ID or numeric string ID.
+ * Accepts numbers, numeric strings, and objects with `.id` or `._id`.
+ * Anything non-numeric → null.
  */
-export function toObjectIdString(id) {
+export function toSafeId(id) {
   if (id === null || id === undefined || id === '') return null
   if (typeof id === 'number' && !isNaN(id)) return id
   if (typeof id === 'string') {
     const str = id.trim()
     if (/^\d+$/.test(str)) return parseInt(str, 10)
-    if (/^[0-9a-fA-F]{24}$/.test(str)) return str
   }
   if (id && typeof id === 'object') {
-    if (typeof id.toHexString === 'function') {
-      return id.toHexString()
+    const val = id.id !== undefined ? id.id : (id._id !== undefined ? id._id : null)
+    if (val !== null && val !== id) {
+      return toSafeId(val)
     }
-    const val = id._id !== undefined ? id._id : (id.id !== undefined ? id.id : null)
-    if (val !== null && val !== id && (typeof val === 'string' || typeof val === 'number')) {
-      return toObjectIdString(val)
-    }
-    const str = String(id).trim()
-    if (/^\d+$/.test(str)) return parseInt(str, 10)
-    if (/^[0-9a-fA-F]{24}$/.test(str)) return str
   }
   return null
 }
+
+// Deprecated alias for backwards compatibility
+export const toObjectIdString = toSafeId
 
 import { parseAnyDate } from './dateHelpers.js'
 
