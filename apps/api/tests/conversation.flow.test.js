@@ -19,6 +19,9 @@ vi.mock('../src/modules/patient/patient.service.js', () => ({
 vi.mock('../src/modules/medicine/medicineOrder.service.js', () => ({
   default: { createOrder: vi.fn() }
 }))
+vi.mock('../src/utils/cloudinary.js', () => ({
+  uploadPrescriptionImage: vi.fn().mockResolvedValue('https://res.cloudinary.com/demo/image/upload/rx.jpg'),
+}))
 vi.mock('../src/utils/logger.js', () => ({
   default: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() }
 }))

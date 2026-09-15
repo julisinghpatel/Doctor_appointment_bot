@@ -10,6 +10,9 @@ function mapPatient(row) {
     name: row.name || '',
     age: row.age || null,
     gender: row.gender || null,
+    district: row.district || '',
+    address: row.address || '',
+    pinCode: row.pin_code || '',
     identityKey: row.identity_key || null,
     isOld: Boolean(row.is_old),
     lastVisited: row.last_visited || null,
@@ -58,6 +61,9 @@ class PatientRepository {
         let needsUpdate = false
         let isOld = existing.is_old
         let lastVisited = existing.last_visited
+        let district = existing.district || ''
+        let address = existing.address || ''
+        let pinCode = existing.pin_code || ''
 
         if (data.isOld !== undefined && existing.is_old !== Boolean(data.isOld)) {
           isOld = Boolean(data.isOld)
@@ -67,11 +73,24 @@ class PatientRepository {
           lastVisited = data.lastVisited
           needsUpdate = true
         }
+        if (data.district && data.district !== existing.district) {
+          district = data.district
+          needsUpdate = true
+        }
+        if (data.address && data.address !== existing.address) {
+          address = data.address
+          needsUpdate = true
+        }
+        if (data.pinCode && data.pinCode !== existing.pin_code) {
+          pinCode = data.pinCode
+          needsUpdate = true
+        }
 
         if (needsUpdate) {
           const [updated] = await sql`
             UPDATE patients
-            SET is_old = ${isOld}, last_visited = ${lastVisited}
+            SET is_old = ${isOld}, last_visited = ${lastVisited},
+                district = ${district}, address = ${address}, pin_code = ${pinCode}
             WHERE id = ${existing.id}
             RETURNING *
           `
@@ -93,6 +112,9 @@ class PatientRepository {
             name = ${name},
             age = COALESCE(${data.age}, age),
             gender = COALESCE(${data.gender}, gender),
+            district = COALESCE(${data.district || null}, district),
+            address = COALESCE(${data.address || null}, address),
+            pin_code = COALESCE(${data.pinCode || null}, pin_code),
             is_old = COALESCE(${data.isOld}, is_old),
             last_visited = COALESCE(${data.lastVisited}, last_visited)
           WHERE id = ${unknownPatient.id}
@@ -104,18 +126,24 @@ class PatientRepository {
       // 3. Create a distinct patient record
       const [newPatient] = await sql`
         INSERT INTO patients (
-          phone, name, age, gender, is_old, last_visited
+          phone, name, age, gender, district, address, pin_code, is_old, last_visited
         ) VALUES (
           ${phone},
           ${name},
           ${data.age || null},
           ${data.gender || null},
+          ${data.district || ''},
+          ${data.address || ''},
+          ${data.pinCode || ''},
           ${data.isOld !== undefined ? Boolean(data.isOld) : false},
           ${data.lastVisited || null}
         )
         ON CONFLICT (identity_key) DO UPDATE SET
           is_old = EXCLUDED.is_old,
-          last_visited = COALESCE(EXCLUDED.last_visited, patients.last_visited)
+          last_visited = COALESCE(EXCLUDED.last_visited, patients.last_visited),
+          district = CASE WHEN EXCLUDED.district != '' THEN EXCLUDED.district ELSE patients.district END,
+          address = CASE WHEN EXCLUDED.address != '' THEN EXCLUDED.address ELSE patients.address END,
+          pin_code = CASE WHEN EXCLUDED.pin_code != '' THEN EXCLUDED.pin_code ELSE patients.pin_code END
         RETURNING *
       `
       return mapPatient(newPatient)
@@ -131,12 +159,15 @@ class PatientRepository {
 
     const [created] = await sql`
       INSERT INTO patients (
-        phone, name, age, gender, is_old, last_visited
+        phone, name, age, gender, district, address, pin_code, is_old, last_visited
       ) VALUES (
         ${phone},
         'Unknown',
         ${data.age || null},
         ${data.gender || null},
+        ${data.district || ''},
+        ${data.address || ''},
+        ${data.pinCode || ''},
         ${data.isOld !== undefined ? Boolean(data.isOld) : false},
         ${data.lastVisited || null}
       )
@@ -203,6 +234,9 @@ class PatientRepository {
     const phone = data.phone !== undefined ? data.phone : current.phone
     const age = data.age !== undefined ? data.age : current.age
     const gender = data.gender !== undefined ? data.gender : current.gender
+    const district = data.district !== undefined ? data.district : (current.district || '')
+    const address = data.address !== undefined ? data.address : (current.address || '')
+    const pinCode = data.pinCode !== undefined ? data.pinCode : (current.pinCode || '')
     const isOld = data.isOld !== undefined ? Boolean(data.isOld) : current.isOld
     const lastVisited = data.lastVisited !== undefined ? data.lastVisited : current.lastVisited
     const uhid = data.uhid !== undefined ? data.uhid : current.uhid
@@ -214,6 +248,9 @@ class PatientRepository {
         phone = ${phone},
         age = ${age},
         gender = ${gender},
+        district = ${district},
+        address = ${address},
+        pin_code = ${pinCode},
         is_old = ${isOld},
         last_visited = ${lastVisited},
         uhid = ${uhid}
