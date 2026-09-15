@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Eye, CheckCircle, XCircle, BedDouble, Printer } from 'lucide-react'
+import { Search, Eye, Edit, CheckCircle, XCircle, BedDouble, Printer } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Card from '../components/common/Card'
 import PageHeader from '../components/common/PageHeader'
@@ -25,6 +26,7 @@ const getTodayStr = () => {
 }
 
 export default function Hospitalization() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(30)
@@ -113,6 +115,13 @@ export default function Hospitalization() {
         <div className={styles.rowActions}>
           <button className={styles.actionBtn} onClick={() => handleViewDetail(req)} title="View Details">
             <Eye size={16} />
+          </button>
+          <button
+            className={styles.actionBtn}
+            onClick={() => navigate('/register', { state: { editBooking: req } })}
+            title="Edit Hospitalization Request"
+          >
+            <Edit size={16} />
           </button>
           <button
             className={styles.actionBtn}

@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   User, Phone, CalendarCheck, ClipboardCheck,
-  CheckCircle, ChevronLeft, ChevronRight,
+  CheckCircle, ChevronLeft, ChevronRight, Edit,
 } from 'lucide-react'
 import { registrationService } from '../services/registrationService'
+import { bookingService } from '../services/bookingService'
 import { doctorService } from '../services/doctorService'
 import { isMockMode } from '../services/api'
 import { mockDoctors } from '../data/mockData'
@@ -87,6 +89,10 @@ function stepErrors(step, form) {
 
 export default function Register() {
   const { user } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const editBooking = location.state?.editBooking || null
+
   const [form, setForm] = useState(EMPTY)
   const [step, setStep] = useState(0)
   const [fieldErrors, setFieldErrors] = useState({})
@@ -97,6 +103,62 @@ export default function Register() {
     queryKey: ['doctors'],
     queryFn: doctorService.getDoctors,
   })
+
+  // Pre-fill form state when editing an existing booking
+  useEffect(() => {
+    if (editBooking) {
+      const prefDateStr = editBooking.date || editBooking.preferredDate
+      let formattedDate = tomorrowISO()
+      if (prefDateStr) {
+        const d = new Date(prefDateStr)
+        if (!isNaN(d.getTime())) {
+          formattedDate = toLocalISOString(d)
+        }
+      }
+
+      let docIdStr = ''
+      if (editBooking.doctor_id) docIdStr = String(editBooking.doctor_id)
+      else if (editBooking.doctorId) {
+        docIdStr = typeof editBooking.doctorId === 'object' ? String(editBooking.doctorId.id || editBooking.doctorId._id || '') : String(editBooking.doctorId)
+      }
+
+      const matchedDoc = (rawDoctors || []).find(d => 
+        (docIdStr && String(d.id || d._id) === docIdStr) ||
+        (editBooking.doctor_name && d.name && d.name.toLowerCase() === editBooking.doctor_name.toLowerCase())
+      )
+
+      if (matchedDoc) {
+        docIdStr = String(matchedDoc.id || matchedDoc._id)
+      }
+
+      let deptIdStr = ''
+      if (editBooking.department_id || editBooking.departmentId) {
+        const depObj = editBooking.departmentId
+        deptIdStr = typeof depObj === 'object' ? String(depObj.id || depObj._id || '') : String(editBooking.department_id || editBooking.departmentId)
+      }
+      if (!deptIdStr && matchedDoc) {
+        deptIdStr = (matchedDoc.departmentId && typeof matchedDoc.departmentId === 'object')
+          ? String(matchedDoc.departmentId.id || matchedDoc.departmentId._id)
+          : String(matchedDoc.departmentId || matchedDoc.department || '')
+      }
+
+      setForm({
+        phone: editBooking.mobile || editBooking.patient_phone || '',
+        name: editBooking.patient_name || '',
+        age: editBooking.age ? String(editBooking.age) : '',
+        gender: editBooking.gender || 'Male',
+        isOld: Boolean(editBooking.is_old || editBooking.isOld),
+        district: editBooking.district || '',
+        address: editBooking.address || '',
+        pinCode: editBooking.pinCode || '',
+        problemDescription: editBooking.problemDescription || editBooking.notes || '',
+        departmentId: deptIdStr,
+        doctorId: docIdStr,
+        preferredDate: formattedDate,
+        type: editBooking.type || 'OPD',
+      })
+    }
+  }, [editBooking, rawDoctors])
 
   const activeDoctors = useMemo(
     () => (rawDoctors || []).filter((d) => d.is_active !== false),
@@ -196,6 +258,18 @@ export default function Register() {
           ? (typeof selectedDoctor.departmentId === 'object' ? (selectedDoctor.departmentId.id || selectedDoctor.departmentId._id) : selectedDoctor.departmentId)
           : form.departmentId,
       }
+
+      if (editBooking) {
+        await bookingService.updateBooking(editBooking.id, payload)
+        toast.success('Booking & patient details updated successfully!')
+        if (editBooking.type === 'HOSPITALIZATION' || form.type === 'HOSPITALIZATION') {
+          navigate('/hospitalization')
+        } else {
+          navigate('/appointments')
+        }
+        return
+      }
+
       const res = await registrationService.register(payload, { staffCode: user?.staffCode })
       setResult(res)
       const uhidVal = res.patient?.uhid || res.uhid || ''
@@ -269,9 +343,9 @@ export default function Register() {
   return (
     <div className={styles.page}>
       <PageHeader
-        title="Register Patient"
-        subtitle="Same questions as the WhatsApp bot — offline entries produce identical records"
-        icon={User}
+        title={editBooking ? "Edit Patient Booking" : "Register Patient"}
+        subtitle={editBooking ? "मरीज एवं अपॉइंटमेंट विवरण संशोधन" : "Same questions as the WhatsApp bot — offline entries produce identical records"}
+        icon={editBooking ? Edit : User}
       />
 
       {/* ── Stepper ── */}
@@ -280,7 +354,14 @@ export default function Register() {
           const Icon = s.icon
           const state = i < step ? 'done' : i === step ? 'active' : 'todo'
           return (
-            <div key={s.id} role="listitem" className={`${styles.step} ${styles[state]}`}>
+            <div
+              key={s.id}
+              role="listitem"
+              className={`${styles.step} ${styles[state]}`}
+              onClick={() => setStep(i)}
+              style={{ cursor: 'pointer' }}
+              title={`Jump to ${s.label}`}
+            >
               <div className={styles.stepDot}>
                 {i < step ? <CheckCircle size={18} /> : <Icon size={18} />}
               </div>
@@ -452,8 +533,7 @@ export default function Register() {
                 </dl>
               </div>
               <p className={styles.reviewNote}>
-                Confirming creates the patient (shared UHID for this phone) and the booking
-                (fresh token). Same numbers the bot would confirm.
+                {editBooking ? 'Saving changes will update the patient record and booking details immediately.' : 'Confirming creates the patient (shared UHID for this phone) and the booking (fresh token). Same numbers the bot would confirm.'}
               </p>
             </div>
           )}
@@ -469,18 +549,23 @@ export default function Register() {
             )}
           </div>
           <div className={styles.stepCount}>Step {step + 1} of {STEPS.length}</div>
-          <div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {editBooking && (
+              <Button icon={Edit} size="lg" onClick={handleSubmit} disabled={submitting}>
+                Save Changes Instantly
+              </Button>
+            )}
             {step < STEPS.length - 1 ? (
-              <Button icon={ChevronRight} onClick={next}>
+              <Button icon={ChevronRight} onClick={next} variant={editBooking ? "secondary" : "primary"}>
                 Continue
               </Button>
             ) : submitting ? (
               <Loader />
-            ) : (
+            ) : !editBooking ? (
               <Button icon={CheckCircle} size="lg" onClick={handleSubmit}>
                 Confirm Registration
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </Card>

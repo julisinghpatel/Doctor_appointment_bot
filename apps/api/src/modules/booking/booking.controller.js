@@ -32,6 +32,13 @@ export const bookingController = {
     } catch (err) { next(err) }
   },
 
+  async update(req, res, next) {
+    try {
+      const booking = await bookingService.updateBooking(req.params.id, req.body)
+      res.json({ success: true, booking })
+    } catch (err) { next(err) }
+  },
+
   async updatePrescription(req, res, next) {
     try {
       const booking = await bookingService.updatePrescription(req.params.id, req.body)

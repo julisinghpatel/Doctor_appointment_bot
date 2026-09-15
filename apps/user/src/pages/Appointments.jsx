@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Download, Eye, CheckCircle, XCircle, CalendarCheck, Printer } from 'lucide-react'
+import { Search, Download, Eye, Edit, CheckCircle, XCircle, CalendarCheck, Printer } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { bookingService } from '../services/bookingService'
 import { doctorService } from '../services/doctorService'
@@ -28,6 +29,7 @@ const getTodayStr = () => {
 }
 
 export default function Appointments() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const isDoctor = user?.role === 'doctor'
   const queryClient = useQueryClient()
@@ -172,6 +174,13 @@ export default function Appointments() {
             title="View Details"
           >
             <Eye size={16} />
+          </button>
+          <button
+            className={styles.actionBtn}
+            onClick={() => navigate('/register', { state: { editBooking: booking } })}
+            title="Edit Booking & Patient Details"
+          >
+            <Edit size={16} />
           </button>
           <button
             className={styles.actionBtn}

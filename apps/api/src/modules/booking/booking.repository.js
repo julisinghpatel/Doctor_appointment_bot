@@ -250,6 +250,44 @@ class BookingRepository {
     return this.findById(row.id)
   }
 
+  async updateBooking(id, data) {
+    const coercedId = toObjectIdString(id)
+    if (!coercedId) return null
+
+    const [existing] = await sql`SELECT patient_id FROM bookings WHERE id = ${coercedId}`
+    if (!existing) return null
+
+    if (existing.patient_id) {
+      await sql`
+        UPDATE patients
+        SET
+          name = COALESCE(${data.name || data.patientName || null}, name),
+          phone = COALESCE(${data.phone || data.mobile || null}, phone),
+          age = COALESCE(${data.age !== undefined && data.age !== '' ? parseInt(data.age, 10) : null}, age),
+          gender = COALESCE(${data.gender || null}, gender),
+          address = COALESCE(${data.address || null}, address),
+          district = COALESCE(${data.district || null}, district),
+          pin_code = COALESCE(${data.pinCode || null}, pin_code)
+        WHERE id = ${existing.patient_id}
+      `
+    }
+
+    await sql`
+      UPDATE bookings
+      SET
+        doctor_id = COALESCE(${data.doctorId || null}, doctor_id),
+        department_id = COALESCE(${data.departmentId || null}, department_id),
+        appointment_date = COALESCE(${data.preferredDate || data.appointmentDate || null}, appointment_date),
+        type = COALESCE(${data.visitType || data.type || null}, type),
+        problem_description = COALESCE(${data.notes || data.problemDescription || null}, problem_description),
+        status = COALESCE(${data.status || null}, status),
+        updated_at = NOW()
+      WHERE id = ${coercedId}
+    `
+
+    return this.findById(coercedId)
+  }
+
   async updateVitals(id, vitals) {
     const [existing] = await sql`SELECT meta FROM bookings WHERE id = ${id}`
     const currentMeta = existing?.meta || {}

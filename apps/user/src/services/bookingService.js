@@ -10,29 +10,36 @@ const MOCK_DELAY = 300
  */
 function normalizeBooking(b) {
   const resolvedDate = b.preferredDate || b.date || b.slotId?.date || b.createdAt
+  const patObj = typeof b.patientId === 'object' ? b.patientId : {}
+  const docObj = typeof b.doctorId === 'object' ? b.doctorId : {}
   return {
     id: b.id || b._id,
     booking_id: b.bookingId,
-    patient_id: b.patientId?.id || b.patientId?._id || null,
-    patient_name: b.patientId?.name || 'Unknown',
-    mobile: b.patientId?.phone || '',
-    age: b.patientId?.age ?? null,
-    gender: b.patientId?.gender || '',
-    doctor_id: b.doctorId?.id || b.doctorId?._id || b.doctorId,
-    doctor_name: b.doctorId?.name || 'Unknown',
-    doctor_specialization: b.doctorId?.specialization || '',
-    service_name: b.serviceId?.name || '—',
+    patient_id: patObj?.id || patObj?._id || b.patient_id || null,
+    patient_name: patObj?.name || b.patient_name || 'Unknown',
+    mobile: patObj?.phone || b.patient_phone || b.mobile || '',
+    age: patObj?.age ?? b.age ?? null,
+    gender: patObj?.gender || b.gender || '',
+    address: patObj?.address || b.patient_address || b.address || '',
+    district: patObj?.district || b.patient_district || b.district || '',
+    pinCode: patObj?.pinCode || patObj?.pin_code || b.patient_pin_code || b.pinCode || '',
+    doctor_id: docObj?.id || docObj?._id || b.doctor_id || b.doctorId,
+    doctor_name: docObj?.name || b.doctor_name || 'Unknown',
+    doctor_specialization: docObj?.specialization || b.doctor_specialization || b.department_name || '',
+    departmentId: b.departmentId?.id || b.departmentId?._id || b.departmentId || b.department_id || docObj?.departmentId || null,
+    department_id: b.departmentId?.id || b.departmentId?._id || b.departmentId || b.department_id || docObj?.departmentId || null,
+    service_name: b.serviceId?.name || b.service_name || '—',
     date: resolvedDate,
     preferredDate: resolvedDate,
     time_slot: b.slotId ? `${b.slotId.startTime} - ${b.slotId.endTime}` : '—',
     status: b.status,
     booking_source: b.bookingSource || 'whatsapp',
-    problemDescription: b.problemDescription || '',
-    uhid: b.patientId?.uhid || b.uhid || null,
+    problemDescription: b.problemDescription || b.notes || '',
+    uhid: patObj?.uhid || b.uhid || null,
     token_number: b.tokenNumber || b.token_number || null,
     type: b.type || 'OPD',
-    is_old: (typeof b.patientId === 'object' && b.patientId?.isOld !== undefined) ? b.patientId.isOld : (b.isOld ?? b.is_old ?? false),
-    isOld: (typeof b.patientId === 'object' && b.patientId?.isOld !== undefined) ? b.patientId.isOld : (b.isOld ?? b.is_old ?? false),
+    is_old: patObj?.isOld !== undefined ? patObj.isOld : (b.isOld ?? b.is_old ?? false),
+    isOld: patObj?.isOld !== undefined ? patObj.isOld : (b.isOld ?? b.is_old ?? false),
     created_by: b.createdBy || b.created_by || null,
     created_at: b.createdAt,
     updated_at: b.updatedAt,
@@ -222,6 +229,32 @@ export const bookingService = {
       return { success: true, booking }
     }
     const { data } = await api.patch(`/bookings/${id}/status`, { status })
+    return data
+  },
+
+  /**
+   * Update full booking details
+   * @param {string|number} id 
+   * @param {Object} payload 
+   */
+  async updateBooking(id, payload) {
+    if (isMockMode()) {
+      await new Promise((r) => setTimeout(r, MOCK_DELAY))
+      const booking = mockBookings.find((b) => b.id === Number(id))
+      if (booking) {
+        if (payload.name) booking.patient_name = payload.name
+        if (payload.phone) booking.mobile = payload.phone
+        if (payload.age) booking.age = payload.age
+        if (payload.gender) booking.gender = payload.gender
+        if (payload.doctorId) booking.doctor_id = Number(payload.doctorId)
+        if (payload.preferredDate) booking.date = payload.preferredDate
+        if (payload.problemDescription) booking.problemDescription = payload.problemDescription
+        if (payload.type) booking.type = payload.type
+        if (payload.status) booking.status = payload.status
+      }
+      return { success: true, booking }
+    }
+    const { data } = await api.patch(`/bookings/${id}`, payload)
     return data
   },
 

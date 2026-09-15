@@ -128,6 +128,15 @@ class BookingService {
     return updated;
   }
 
+  async updateBooking(id, data) {
+    const booking = await bookingRepo.findById(id);
+    if (!booking) throw new AppError("Booking not found", 404);
+
+    const updated = await bookingRepo.updateBooking(id, data);
+    await cache.invalidate("dashboard:*");
+    return updated;
+  }
+
   async deleteBooking(id) {
     const booking = await bookingRepo.findById(id);
     if (booking?.slotId) {
