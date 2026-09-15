@@ -228,10 +228,10 @@ export class DoctorPrescriptionPrintHandler {
   .vital-cell { height: 18px; font-size: 10px; font-weight: 700; color: #0f172a; display:flex; align-items:center; justify-content:center; border-right: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
   .vital-cell:last-child { border-right: none; }
   /* Doctor Notes */
-  .rx-box { border: 1px solid #cbd5e1; border-radius: 5px; padding: 6px 10px; margin-bottom: 6px; min-height: 130px; }
-  .rx-title { font-size: 9.5px; font-weight: 800; color: #0369a1; text-transform: uppercase; margin-bottom: 3px; }
-  .notes-text { font-size: 10.5px; color: #1e293b; font-weight: 600; line-height: 1.4; white-space: pre-wrap; }
-  .ruled-line { border-bottom: 1px solid #e2e8f0; margin-top: 16px; height: 1px; }
+  .rx-box { border: 1px solid #cbd5e1; border-radius: 5px; padding: 8px 12px; margin-bottom: 8px; min-height: 220px; }
+  .rx-title { font-size: 10px; font-weight: 800; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.3px; }
+  .notes-text { font-size: 11px; color: #1e293b; font-weight: 600; line-height: 1.5; white-space: pre-wrap; }
+  .ruled-line { border-bottom: 1px solid #e2e8f0; margin-top: 22px; height: 1px; }
   /* Tables */
   .tbl-wrap { border: 1px solid #0284c7; border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
   .tbl-header { background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 800; padding: 4px 8px; display: flex; justify-content: space-between; border-bottom: 1px solid #0284c7; }
@@ -243,14 +243,17 @@ export class DoctorPrescriptionPrintHandler {
   table.p-tbl td:last-child { border-right: none; }
   .chk { display: inline-block; width: 11px; height: 11px; border: 1.2px solid #0369a1; border-radius: 2px; text-align: center; line-height: 9px; font-size: 8px; font-weight: 800; color: #0369a1; }
   /* Signature */
-  .sig-area { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 6px; padding-top: 2px; }
-  .sig-box { width: 180px; height: 38px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fafafa; display: flex; align-items: flex-end; padding: 2px 6px; }
+  .sig-area { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px; padding-top: 4px; }
+  .sig-box { width: 190px; height: 42px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fafafa; display: flex; align-items: flex-end; padding: 3px 8px; }
   .sig-title { font-size: 9px; font-weight: 700; color: #475569; }
   .notice { font-size: 8.5px; color: #0284c7; font-weight: 700; margin-top: 2px; line-height: 1.25; }
   .stamp { font-size: 9px; font-weight: 800; color: #94a3b8; border: 1px dashed #94a3b8; padding: 12px 18px; border-radius: 4px; text-align: center; }
   /* Footer */
-  .footer-bar { display: flex; align-items: center; justify-content: space-around; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 5px; padding: 4px 8px; margin-top: 6px; }
-  .contact { display: flex; align-items: center; gap: 4px; font-size: 9.5px; font-weight: 700; color: #0369a1; }
+  .footer-bar { display: flex; align-items: center; justify-content: space-around; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 6px 12px; margin-top: 10px; }
+  .contact { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; color: #15803d; }
+  .contact-icon-wa { width: 18px; height: 18px; border-radius: 50%; background: #25d366; display: flex; align-items: center; justify-content: center; color: #fff; }
+  .contact-icon-phone { width: 18px; height: 18px; border-radius: 50%; background: #0284c7; display: flex; align-items: center; justify-content: center; color: #fff; }
+  .contact-icon-desk { width: 18px; height: 18px; border-radius: 50%; background: #0369a1; display: flex; align-items: center; justify-content: center; color: #fff; }
 </style>
 </head>
 <body>
@@ -315,7 +318,7 @@ export class DoctorPrescriptionPrintHandler {
   <!-- Doctor Notes -->
   <div class="rx-box">
     <div class="rx-title">DOCTOR'S NOTES / CLINICAL DIAGNOSIS</div>
-    ${rxNotes ? `<div class="notes-text">${rxNotes}</div>` : `<div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div>`}
+    ${rxNotes ? `<div class="notes-text">${rxNotes}</div>` : `<div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div>`}
   </div>
 
   <!-- Prescribed Medicines Table -->
@@ -373,9 +376,24 @@ export class DoctorPrescriptionPrintHandler {
 
   <!-- Footer -->
   <div class="footer-bar">
-    <div class="contact">WhatsApp Chatbot <strong>+91 8853991899</strong></div>
-    <div class="contact">Call Helpline Number <strong>+91 9838850287</strong></div>
-    <div class="contact">Helpdesk <strong>+91 8840376333</strong></div>
+    <div class="contact">
+      <div class="contact-icon-wa">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+      </div>
+      <span>WhatsApp Chatbot: <strong>+91 8853991899</strong></span>
+    </div>
+    <div class="contact">
+      <div class="contact-icon-phone">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+      </div>
+      <span>Call Helpline: <strong>+91 9838850287</strong></span>
+    </div>
+    <div class="contact">
+      <div class="contact-icon-desk">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
+      </div>
+      <span>Helpdesk: <strong>+91 8840376333</strong></span>
+    </div>
   </div>
 </div>
 
