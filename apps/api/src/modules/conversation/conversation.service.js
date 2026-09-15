@@ -71,6 +71,13 @@ class ConversationService {
             state,
             input,
           );
+        case STEPS.OPD_GYNAE_CATEGORY:
+          return await opdHandler.handleOpdGynaeCategory(
+            this,
+            phone,
+            state,
+            input,
+          );
         case STEPS.OPD_DOCTOR:
           return await opdHandler.handleOpdDoctor(this, phone, state, input);
         case STEPS.SELECT_DATE:

@@ -139,6 +139,8 @@ class PatientService {
       tokenNumber,
       createdBy,
       createdByRole,
+      category: data.category || '',
+      visitNumber: data.visitNumber || null,
     })
 
     logger.info(`Registered ${type} booking ${booking.bookingId} for phone ${phone} (source: ${source})`)

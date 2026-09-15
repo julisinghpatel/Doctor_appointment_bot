@@ -28,7 +28,14 @@ class DepartmentRepository {
         ORDER BY name ASC
       `
     }
-    return rows.map(mapDepartment)
+    const mapped = rows.map(mapDepartment)
+    return mapped.sort((a, b) => {
+      const isGynA = /gyn|obstetric|स्त्री/i.test(a.name || '')
+      const isGynB = /gyn|obstetric|स्त्री/i.test(b.name || '')
+      if (isGynA && !isGynB) return -1
+      if (!isGynA && isGynB) return 1
+      return (a.name || '').localeCompare(b.name || '')
+    })
   }
 
   async findActive() {
@@ -37,7 +44,14 @@ class DepartmentRepository {
       WHERE is_active = true
       ORDER BY name ASC
     `
-    return rows.map(mapDepartment)
+    const mapped = rows.map(mapDepartment)
+    return mapped.sort((a, b) => {
+      const isGynA = /gyn|obstetric|स्त्री/i.test(a.name || '')
+      const isGynB = /gyn|obstetric|स्त्री/i.test(b.name || '')
+      if (isGynA && !isGynB) return -1
+      if (!isGynA && isGynB) return 1
+      return (a.name || '').localeCompare(b.name || '')
+    })
   }
 
   async findById(id) {

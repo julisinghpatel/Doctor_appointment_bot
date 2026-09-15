@@ -22,6 +22,8 @@ function mapBooking(row) {
     vitalTemp: meta.vitalTemp || '',
     vitalWeight: meta.vitalWeight || '',
     vitalSpo2: meta.vitalSpo2 || '',
+    category: meta.category || '',
+    visitNumber: meta.visitNumber || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     address: row.patient_address || '',
@@ -190,6 +192,8 @@ class BookingRepository {
       vitalWeight: data.vitalWeight || '',
       vitalSpo2: data.vitalSpo2 || '',
       tokenIssued: Boolean(data.tokenIssued),
+      category: data.category || '',
+      visitNumber: data.visitNumber || null,
     }
 
     const [row] = await sql`
@@ -269,6 +273,21 @@ class BookingRepository {
   }
 
   async getStats() {
+    try {
+      const [summary] = await sql`SELECT * FROM total_analytics_summary WHERE id = 1`
+      if (summary) {
+        const [todayRow] = await sql`SELECT count(*) AS today_count FROM bookings WHERE created_at >= CURRENT_DATE`
+        return {
+          total: Number(summary.total_bookings),
+          todayCount: Number(todayRow?.today_count || 0),
+          confirmed: Number(summary.total_confirmed_bookings),
+          cancelled: Number(summary.total_cancelled_bookings),
+        }
+      }
+    } catch {
+      // Fallback if summary table does not exist
+    }
+
     const [row] = await sql`
       SELECT
         count(*) AS total,
@@ -364,6 +383,27 @@ class BookingRepository {
       total,
       average_per_day: Math.round(total / daySpan),
       growth: 0,
+    }
+  }
+
+  async getLatestInfertilityVisitCount(patientId) {
+    if (!patientId) return 0
+    try {
+      const [row] = await sql`
+        SELECT COUNT(*)::int AS count
+        FROM bookings
+        WHERE patient_id = ${patientId}
+          AND status != 'cancelled'
+          AND (
+            meta->>'category' = 'Infertility'
+            OR problem_description ILIKE '%infertility%'
+            OR problem_description ILIKE '%बांझपन%'
+            OR problem_description ILIKE '%निःसंतानता%'
+          )
+      `
+      return Number(row?.count || 0)
+    } catch (e) {
+      return 0
     }
   }
 }

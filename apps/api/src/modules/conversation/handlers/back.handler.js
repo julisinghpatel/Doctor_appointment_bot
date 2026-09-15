@@ -10,7 +10,16 @@ export const backHandler = {
     if (state.currentStep === STEPS.OPD_DEPARTMENT) {
       return service.resetAndWelcome(phone)
     }
+    if (state.currentStep === STEPS.OPD_GYNAE_CATEGORY) {
+      const deps = await departmentService.getActiveDepartments()
+      await conversationRepo.upsert(phone, { currentStep: STEPS.OPD_DEPARTMENT })
+      return service.sendMessage(phone, MESSAGES.departments(deps))
+    }
     if (state.currentStep === STEPS.OPD_DOCTOR) {
+      if (state.stateData?.category) {
+        await conversationRepo.upsert(phone, { currentStep: STEPS.OPD_GYNAE_CATEGORY })
+        return service.sendMessage(phone, MESSAGES.gynaeCategory())
+      }
       const deps = await departmentService.getActiveDepartments()
       await conversationRepo.upsert(phone, { currentStep: STEPS.OPD_DEPARTMENT })
       return service.sendMessage(phone, MESSAGES.departments(deps))

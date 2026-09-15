@@ -224,6 +224,10 @@ class PatientRepository {
   }
 
   async countAll() {
+    try {
+      const [summary] = await sql`SELECT total_patients FROM total_analytics_summary WHERE id = 1`
+      if (summary) return Number(summary.total_patients)
+    } catch {}
     const [row] = await sql`SELECT count(*) FROM patients`
     return Number(row.count)
   }

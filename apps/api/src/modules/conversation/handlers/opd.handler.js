@@ -2,6 +2,7 @@ import conversationRepo from '../conversation.repository.js'
 import doctorService from '../../doctor/doctor.service.js'
 import patientService from '../../patient/patient.service.js'
 import departmentService from '../../department/department.service.js'
+import bookingRepo from '../../booking/booking.repository.js'
 import { STEPS, MESSAGES } from '../conversation.steps.js'
 import { resolveDate } from '../../../utils/dateHelpers.js'
 
@@ -14,6 +15,16 @@ export const opdHandler = {
     if (isNaN(idx) || idx < 0 || idx >= deps.length) return service.sendMessage(phone, MESSAGES.invalidInput())
     
     const selectedDept = deps[idx]
+    const isGynae = /gyn|obstetric|स्त्री/i.test(selectedDept.name || '')
+
+    if (isGynae) {
+      await conversationRepo.upsert(phone, {
+        currentStep: STEPS.OPD_GYNAE_CATEGORY,
+        stateData: { ...state?.stateData, departmentId: getId(selectedDept), departmentName: selectedDept.name }
+      })
+      return service.sendMessage(phone, MESSAGES.gynaeCategory())
+    }
+
     let docs = await doctorService.getDoctorsByDepartment(getId(selectedDept))
     
     if (!docs.length) {
@@ -22,9 +33,77 @@ export const opdHandler = {
     
     await conversationRepo.upsert(phone, {
       currentStep: STEPS.OPD_DOCTOR,
-      stateData: { departmentId: getId(selectedDept), departmentName: selectedDept.name }
+      stateData: { ...state?.stateData, departmentId: getId(selectedDept), departmentName: selectedDept.name }
     })
     return service.sendMessage(phone, MESSAGES.doctors(selectedDept.name, docs))
+  },
+
+  async handleOpdGynaeCategory(service, phone, state, input) {
+    const choice = input.trim()
+    const deptId = state?.stateData?.departmentId
+    const deptName = state?.stateData?.departmentName || 'Gynaecology & Obstetrics'
+
+    let docs = await doctorService.getDoctorsByDepartment(deptId)
+    if (!docs.length) docs = await doctorService.getActiveDoctors()
+
+    if (choice === '2') {
+      // 2️⃣ Others -> Route directly to Dr. Anand Prakash Tiwari
+      const drAnand = docs.find(d => /anand/i.test(d.name)) || docs[0]
+      await conversationRepo.upsert(phone, {
+        currentStep: STEPS.SELECT_DATE,
+        selectedDoctorId: getId(drAnand),
+        stateData: {
+          ...state.stateData,
+          category: 'Others',
+          doctorId: getId(drAnand),
+          doctorName: drAnand.name
+        }
+      })
+      return service.sendDateOptions(phone, state, (opts) => MESSAGES.selectDate(drAnand.name, opts))
+    }
+
+    if (choice === '1') {
+      // 1️⃣ Infertility -> Calculate visit number n automatically from booking history
+      const patients = await patientService.findAllByPhone(phone)
+      const primaryPatient = patients[0]
+      const pastVisits = primaryPatient ? await bookingRepo.getLatestInfertilityVisitCount(primaryPatient.id) : 0
+      const currentVisitNumber = pastVisits + 1
+
+      const drAnand = docs.find(d => /anand/i.test(d.name))
+
+      if (currentVisitNumber % 3 === 1) {
+        // Visit 1, 4, 7... -> Dr. Anand Prakash Tiwari
+        const selectedDoc = drAnand || docs[0]
+        await conversationRepo.upsert(phone, {
+          currentStep: STEPS.SELECT_DATE,
+          selectedDoctorId: getId(selectedDoc),
+          stateData: {
+            ...state.stateData,
+            category: 'Infertility',
+            visitNumber: currentVisitNumber,
+            doctorId: getId(selectedDoc),
+            doctorName: selectedDoc.name
+          }
+        })
+        return service.sendDateOptions(phone, state, (opts) => MESSAGES.selectDate(selectedDoc.name, opts))
+      } else {
+        // Visit 2, 3, 5, 6... -> Other Gynaecologists (filter out Dr. Anand)
+        const otherDocs = docs.filter(d => !/anand/i.test(d.name))
+        const finalDocs = otherDocs.length > 0 ? otherDocs : docs
+
+        await conversationRepo.upsert(phone, {
+          currentStep: STEPS.OPD_DOCTOR,
+          stateData: {
+            ...state.stateData,
+            category: 'Infertility',
+            visitNumber: currentVisitNumber
+          }
+        })
+        return service.sendMessage(phone, MESSAGES.doctors(deptName, finalDocs))
+      }
+    }
+
+    return service.sendMessage(phone, MESSAGES.invalidInput())
   },
 
   async handleOpdDoctor(service, phone, state, input) {
@@ -36,6 +115,11 @@ export const opdHandler = {
     } else {
       docs = await doctorService.getActiveDoctors()
     }
+
+    if (state?.stateData?.category === 'Infertility' && (state?.stateData?.visitNumber % 3 !== 1)) {
+      docs = docs.filter(d => !/anand/i.test(d.name))
+    }
+
     const idx = parseInt(input, 10) - 1
     if (isNaN(idx) || idx < 0 || idx >= docs.length) return service.sendMessage(phone, MESSAGES.invalidInput())
     
@@ -220,6 +304,8 @@ export const opdHandler = {
         preferredDate: state.selectedDate,
         problemDescription: state.stateData.problem,
         type: 'OPD',
+        category: state.stateData?.category || '',
+        visitNumber: state.stateData?.visitNumber || null,
       },
       { source: 'whatsapp' },
       { validate: false }
