@@ -1,73 +1,18 @@
 import { formatDate } from '../utils/formatters'
-import { mockMedicines, mockLabTests } from '../data/mockData'
-import { printService } from './printService'
 
 /**
  * PrintSlipHandler — Opens a dedicated print window with the patient slip
- * rendered as self-contained HTML + inline CSS. Opens window synchronously
- * to prevent browser popup blockers.
+ * rendered as self-contained HTML + inline CSS. This avoids all @media print
+ * conflicts with the main SPA and works reliably across browsers.
  */
 export class PrintSlipHandler {
   /**
    * Print a single booking slip.
    * @param {Object} booking
    */
-  static async printBooking(booking) {
+  static printBooking(booking) {
     if (!booking) return console.warn('PrintSlipHandler: No booking provided')
-
-    // 1. Open popup window SYNCHRONOUSLY before async calls to prevent browser popup blocking
-    let printWin = null
-    try {
-      printWin = window.open('', '_blank', 'width=920,height=780,scrollbars=yes')
-      if (printWin) {
-        printWin.document.open()
-        printWin.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head><title>Loading OPD Slip...</title></head>
-          <body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:90vh; color:#0369a1;">
-            <div style="font-size:18px; font-weight:700; margin-bottom:8px;">KG Nanda Hospital</div>
-            <div style="font-size:14px; color:#64748b;">Preparing OPD Consultation Slip for printing...</div>
-          </body>
-          </html>
-        `)
-        printWin.document.close()
-      }
-    } catch (e) {
-      console.warn('Popup window blocked, fallback to direct print', e)
-    }
-
-    // 2. Fetch full enriched slip data
-    let slipData = booking
-    try {
-      slipData = await printService.getSlipData(booking)
-    } catch (err) {
-      console.warn('Could not fetch additional slip details, using provided booking object', err)
-    }
-
-    // 3. Populate print window HTML
-    if (printWin && !printWin.closed) {
-      const html = this._buildSlipHTML(slipData)
-      printWin.document.open()
-      printWin.document.write(html)
-      printWin.document.close()
-
-      // Trigger print after rendering
-      const triggerPrint = () => {
-        try {
-          printWin.focus()
-          printWin.print()
-        } catch (e) {
-          console.error('Print trigger failed', e)
-        }
-      }
-
-      printWin.onload = () => setTimeout(triggerPrint, 300)
-      setTimeout(triggerPrint, 600)
-    } else {
-      // Fallback if popup blocked: trigger browser window.print()
-      window.print()
-    }
+    this._openPrintWindow(booking)
   }
 
   /** Build the full HTML document for the print window. */
@@ -79,7 +24,9 @@ export class PrintSlipHandler {
 
     const docTitle = isIPD ? 'IPD Admission Ticket' : 'OPD Consultation Slip'
     const isOldPatient = Boolean(booking.isOld || booking.is_old)
-    const patientStatusLabel = isOldPatient ? ' (Old Patient पुराना मरीज)' : ' (नया मरीज)'
+    const patientStatusLabel = isOldPatient
+      ? ' (Old Patient पुराना मरीज)'
+      : ' (नया मरीज)'
 
     const tokenDisplay = booking.token_number
       ? String(booking.token_number).startsWith('T-')
@@ -88,107 +35,24 @@ export class PrintSlipHandler {
       : booking.time_slot || '—'
 
     const generatedTime = new Date().toLocaleString('en-IN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: true,
     })
 
     const appointmentDate = formatDate(booking.preferredDate || booking.date)
     const source = booking.source_label || booking.created_by || booking.bookingSource || 'WhatsApp Bot'
-    const doctorFee = booking.consultation_fee || booking.doctor_fee || 500
+    const address = [
+      booking.address || '',
+      booking.district ? `, ${booking.district}` : '',
+      booking.pinCode ? ` — ${booking.pinCode}` : '',
+    ].join('')
 
-    const addrLine = booking.address || booking.patient_address || booking.patientId?.address || booking.patient?.address || ''
-    const distLine = booking.district || booking.patient_district || booking.patientId?.district || booking.patient?.district || ''
-    const pinLine = booking.pinCode || booking.pincode || booking.pin_code || booking.patient_pin_code || booking.patientId?.pinCode || booking.patient?.pinCode || ''
-    const addressParts = [addrLine, distLine, pinLine].filter(Boolean)
-    const address = addressParts.length > 0 ? addressParts.join(', ') : '—'
-
-    const accentBg = isIPD ? '#dcfce7' : '#e0f2fe'
-    const accentBorder = isIPD ? '#bbf7d0' : '#bae6fd'
-    const accentText = isIPD ? '#14532d' : '#0c4a6e'
-    const titleColor = isIPD ? '#15803d' : '#0284c7'
+    const accentBg = isIPD ? '#e8f5e9' : '#e3f2fd'
+    const accentBorder = isIPD ? '#c8e6c9' : '#bbdefb'
+    const accentText = isIPD ? '#1b5e20' : '#0d47a1'
+    const titleColor = isIPD ? '#2e7d32' : '#1d6fa5'
     const counterType = isIPD ? 'IPD admission' : 'OPD'
     const hindiCounter = isIPD ? 'आईपीडी' : 'ओपीडी'
-
-    // Prescription Data
-    const rx = booking.prescription || booking.meta?.prescription || {}
-    const rxVitals = rx.vitals || {}
-    const rxNotes = rx.doctor_notes || ''
-    const prescribedMeds = rx.medicines || []
-    const orderedTests = rx.tests || []
-
-    const deptId = Number(booking.department_id || 1)
-    const deptMedicines = mockMedicines.filter((m) => m.department_id === deptId)
-    const defaultMedsList = deptMedicines.length ? deptMedicines : mockMedicines.slice(0, 14)
-
-    // Build 15 Medicine Rows HTML (Receptionist Template)
-    let medRowsHTML = ''
-    for (let idx = 0; idx < 15; idx++) {
-      const srNo = idx + 1
-      let name = ''
-      let dosage = ''
-      let frequency = ''
-      let duration = ''
-      let remarks = ''
-      let checked = false
-
-      if (prescribedMeds[idx]) {
-        const pm = prescribedMeds[idx]
-        name = pm.name || pm.medicine_name || ''
-        dosage = pm.dosage || '—'
-        frequency = pm.frequency || '—'
-        duration = pm.duration || '—'
-        remarks = pm.remarks || ''
-        checked = true
-      } else if (defaultMedsList[idx]) {
-        name = defaultMedsList[idx].name
-      } else if (srNo === 15) {
-        name = 'Other (Specify) _______________'
-      }
-
-      medRowsHTML += `<tr>
-        <td style="text-align:center; font-weight:600;">${srNo}</td>
-        <td>${name}</td>
-        <td>${dosage}</td>
-        <td>${frequency}</td>
-        <td>${duration}</td>
-        <td>${remarks}</td>
-        <td style="text-align:center;"><div class="chk">${checked ? '✓' : ''}</div></td>
-      </tr>`
-    }
-
-    // Build 10 Test Rows HTML (Receptionist Template)
-    const deptTests = mockLabTests.filter((t) => t.department_id === deptId || !t.department_id)
-    const defaultTestsList = deptTests.length ? deptTests : mockLabTests.slice(0, 9)
-
-    let testRowsHTML = ''
-    for (let idx = 0; idx < 10; idx++) {
-      const srNo = idx + 1
-      let name = ''
-      let remarks = ''
-      let checked = false
-
-      if (orderedTests[idx]) {
-        const pt = orderedTests[idx]
-        name = pt.name || pt.test_name || ''
-        remarks = pt.remarks || ''
-        checked = true
-      } else if (defaultTestsList[idx]) {
-        name = defaultTestsList[idx].name
-      } else if (srNo === 10) {
-        name = 'Other (Specify) _______________'
-      }
-
-      testRowsHTML += `<tr>
-        <td style="text-align:center; font-weight:600;">${srNo}</td>
-        <td>${name}</td>
-        <td>${remarks}</td>
-        <td style="text-align:center;"><div class="chk">${checked ? '✓' : ''}</div></td>
-      </tr>`
-    }
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -196,215 +60,218 @@ export class PrintSlipHandler {
 <meta charset="UTF-8"/>
 <title>${docTitle} — ${booking.patient_name || 'Patient'}</title>
 <style>
-  @page { size: A5 landscape; margin: 4mm 5mm; }
+  @page { size: A4 portrait; margin: 6mm 8mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    color: #0f172a;
+    color: #1a1a1a;
     background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
   .slip {
-    border: 1.5px solid ${isIPD ? '#16a34a' : '#0284c7'};
-    border-radius: 6px;
-    padding: 8px 10px;
+    border: 1.5px solid ${isIPD ? '#81c784' : '#a8c7e0'};
+    border-radius: 8px;
+    padding: 14px 18px;
     background: #fff;
-    margin: 0 auto;
-    max-width: 780px;
-    max-height: 140mm;
+    margin-bottom: 10px;
     page-break-inside: avoid;
     break-inside: avoid;
   }
   /* Header */
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
-  .brand { display: flex; align-items: center; gap: 10px; }
-  .logo-img { height: 46px; max-width: 170px; object-fit: contain; }
-  .hospital-name { font-size: 19px; font-weight: 800; color: #0369a1; line-height: 1.1; }
-  .doc-title { font-size: 13px; font-weight: 700; color: ${titleColor}; margin-top: 1px; }
-  .gen-time { font-size: 10px; color: #64748b; font-weight:600; text-align: right; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .hospital-name { font-size: 22px; font-weight: 800; color: #0b3c5d; line-height: 1.1; }
+  .doc-title { font-size: 15px; font-weight: 700; color: ${titleColor}; margin-top: 2px; }
+  .gen-time { font-size: 11px; color: #546e7a; text-align: right; }
   /* Stats Bar */
   .stats-bar {
     display: grid; grid-template-columns: repeat(4, 1fr);
     background: ${accentBg}; border: 1px solid ${accentBorder};
-    border-radius: 5px; padding: 4px 8px; margin-bottom: 6px; gap: 6px;
+    border-radius: 6px; padding: 7px 12px; margin-bottom: 10px; gap: 8px;
   }
-  .stat-label { font-size: 9px; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.3px; }
-  .stat-value { font-size: 11px; font-weight: 700; color: ${accentText}; margin-top: 1px; }
+  .stat-label { font-size: 9px; font-weight: 800; color: #455a64; text-transform: uppercase; letter-spacing: 0.4px; }
+  .stat-value { font-size: 12px; font-weight: 700; color: ${accentText}; margin-top: 1px; }
   /* Two Columns */
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
-  .detail-box { border: 1px solid #cbd5e1; border-radius: 5px; padding: 5px 8px; background: #f8fafc; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .detail-box { border: 1px solid #cfd8dc; border-radius: 6px; padding: 8px 10px; background: #fafafa; }
   .box-header {
-    font-size: 10px; font-weight: 800; color: #0369a1; text-transform: uppercase;
-    letter-spacing: 0.3px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;
+    font-size: 11px; font-weight: 800; color: #263238; text-transform: uppercase;
+    letter-spacing: 0.3px; border-bottom: 1px solid #eceff1; padding-bottom: 4px; margin-bottom: 6px;
   }
   .highlight { color: #d97706; font-weight: 700; }
-  .field-row { display: flex; font-size: 10px; line-height: 1.35; margin-bottom: 2px; }
-  .field-name { font-weight: 700; color: #334155; min-width: 80px; }
-  .field-val { color: #0f172a; font-weight: 600; flex: 1; }
+  .field-row { display: flex; font-size: 11px; line-height: 1.45; margin-bottom: 3px; }
+  .field-name { font-weight: 700; color: #37474f; min-width: 95px; }
+  .field-val { color: #102a43; font-weight: 500; flex: 1; }
   /* Vitals */
-  .vitals-wrap { border: 1px solid #cbd5e1; border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
-  .vitals-title { font-size: 9.5px; font-weight: 800; color: #0369a1; background: #f0f9ff; padding: 3px 8px; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; }
+  .vitals-wrap { border: 1px solid #cfd8dc; border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
+  .vitals-title { font-size: 10px; font-weight: 800; color: #37474f; background: #f1f5f9; padding: 4px 10px; text-transform: uppercase; border-bottom: 1px solid #cfd8dc; }
   .vitals-grid { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; }
-  .vital-header { font-size: 8.5px; font-weight: 700; color: #0369a1; padding: 2px 2px; border-right: 1px solid #e2e8f0; background: #f8fafc; }
+  .vital-header { font-size: 9px; font-weight: 700; color: #475569; padding: 4px 2px; border-right: 1px solid #e2e8f0; background: #f8fafc; }
   .vital-header:last-child { border-right: none; }
-  .vital-cell { height: 18px; font-size: 10px; font-weight: 700; color: #0f172a; display:flex; align-items:center; justify-content:center; border-right: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
+  .vital-cell { height: 24px; border-right: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
   .vital-cell:last-child { border-right: none; }
-  /* Doctor Notes */
-  .rx-box { border: 1px solid #cbd5e1; border-radius: 5px; padding: 6px 10px; margin-bottom: 6px; min-height: 110px; }
-  .rx-title { font-size: 9.5px; font-weight: 800; color: #0369a1; text-transform: uppercase; margin-bottom: 3px; }
-  .notes-text { font-size: 10px; color: #1e293b; font-weight: 600; line-height: 1.4; white-space: pre-wrap; }
-  .ruled-line { border-bottom: 1px solid #e2e8f0; margin-top: 14px; height: 1px; }
-  /* Tables */
-  .tbl-wrap { border: 1px solid #0284c7; border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
-  .tbl-header { background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 800; padding: 3px 8px; display: flex; justify-content: space-between; border-bottom: 1px solid #0284c7; }
-  .tbl-sub { font-size: 8.5px; font-weight: 600; color: #0284c7; }
-  table.p-tbl { width: 100%; border-collapse: collapse; font-size: 9px; }
-  table.p-tbl th { background: #f8fafc; color: #0369a1; font-weight: 700; padding: 2px 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #e2e8f0; text-align: left; }
-  table.p-tbl th:last-child { border-right: none; }
-  table.p-tbl td { padding: 2px 4px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #e2e8f0; color: #0f172a; height: 16px; overflow: hidden; white-space: nowrap; }
-  table.p-tbl td:last-child { border-right: none; }
-  .chk { display: inline-block; width: 11px; height: 11px; border: 1.2px solid #0369a1; border-radius: 2px; text-align: center; line-height: 9px; font-size: 8px; font-weight: 800; color: #0369a1; }
+  /* Prescription */
+  .rx-box { border: 1px solid #cfd8dc; border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; min-height: 75px; }
+  .rx-title { font-size: 10px; font-weight: 800; color: #37474f; text-transform: uppercase; margin-bottom: 4px; }
+  .ruled-line { border-bottom: 1px solid #e2e8f0; margin-top: 14px; }
   /* Signature */
-  .sig-area { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px; padding-top: 2px; }
-  .sig-box { width: 180px; height: 36px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fafafa; display: flex; align-items: flex-end; padding: 2px 6px; }
-  .sig-title { font-size: 9px; font-weight: 700; color: #475569; }
-  .notice { font-size: 8.5px; color: #0284c7; font-weight: 700; margin-top: 2px; line-height: 1.25; }
-  .stamp { font-size: 9px; font-weight: 800; color: #94a3b8; border: 1px dashed #94a3b8; padding: 12px 18px; border-radius: 4px; text-align: center; }
+  .sig-area { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 6px; padding-top: 4px; }
+  .sig-title { font-size: 11px; font-weight: 700; color: #1e293b; }
+  .notice { font-size: 9px; color: #64748b; margin-top: 2px; line-height: 1.25; }
+  .stamp { font-size: 10px; font-weight: 800; color: #94a3b8; border: 1px dashed #cbd5e1; padding: 8px 14px; border-radius: 4px; }
   /* Footer */
-  .footer-bar { display: flex; align-items: center; justify-content: space-around; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 5px; padding: 4px 8px; margin-top: 6px; }
-  .contact { display: flex; align-items: center; gap: 4px; font-size: 9.5px; font-weight: 700; color: #0369a1; }
+  .footer-bar {
+    display: flex; align-items: center; gap: 24px;
+    background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;
+    padding: 6px 12px; margin-top: 8px;
+  }
+  .contact { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #15803d; }
+  .icon-circle {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 12px;
+  }
+  .wa-icon { background: #25d366; }
+  .call-icon { background: #0284c7; }
 </style>
 </head>
 <body>
 
-<div class="slip">
+${this._slipBlock(booking, {
+  docTitle, patientStatusLabel, tokenDisplay, generatedTime,
+  appointmentDate, source, address, accentBg, accentBorder,
+  accentText, counterType, hindiCounter, isIPD,
+})}
+
+</body>
+</html>`
+  }
+
+  /** Build one slip block HTML. */
+  static _slipBlock(b, o) {
+    // WhatsApp SVG icon (inline)
+    const waSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`
+    // Phone SVG icon (inline)
+    const phoneSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`
+
+    // Logo image (uses public/image/image.png)
+    /* SVG Logo fallback commented out:
+    const logoSvg = `<svg width="52" height="42" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M100 240C90 190 120 120 170 40C120 80 80 130 90 240Z" fill="#009BDD"/>
+      <path d="M130 220C120 180 150 130 180 80C140 120 110 160 120 220Z" fill="#009BDD"/>
+      <path d="M210 32C240 32 270 50 270 90C290 80 320 80 340 105C360 130 350 160 340 180C360 205 350 240 320 255C290 270 245 275 200 290C220 270 250 250 250 215C250 170 200 180 200 135C200 100 240 110 240 90C240 75 220 50 200 40C202 36 205 32 210 32Z" fill="#7BC142"/>
+      <g transform="translate(70,200) scale(0.6)"><rect x="58" y="20" width="4" height="110" fill="#F37023" rx="2"/><circle cx="60" cy="18" r="6" fill="#F37023"/><path d="M60 40C40 25 15 35 10 45C30 45 45 42 60 55C75 42 90 45 110 45C105 35 80 25 60 40Z" fill="#009BDD"/><path d="M60 50 C40 60 40 75 60 85 C80 95 80 110 60 120" stroke="#7BC142" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M60 50 C80 60 80 75 60 85 C40 95 40 110 60 120" stroke="#7BC142" stroke-width="6" fill="none" stroke-linecap="round"/></g>
+    </svg>`
+    */
+    const logoImg = `<img src="${typeof window !== 'undefined' ? window.location.origin : ''}/image/image.png" style="height:48px; max-width:140px; object-fit:contain; vertical-align:middle;" alt="KG Nanda Hospital Logo" onerror="this.style.display='none'"/>`
+
+    return `<div class="slip">
   <!-- Header -->
   <div class="header">
     <div class="brand">
-      <img src="/image/image.png" class="logo-img" alt="Hospital Logo" onError="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-      <div style="display:none; width:40px; height:40px; background:#0284c7; border-radius:50%; color:#fff; align-items:center; justify-content:center; font-weight:800; font-size:18px;">KGN</div>
+      ${logoImg}
       <div>
         <div class="hospital-name">KG Nanda Hospital</div>
-        <div class="doc-title">${docTitle}</div>
+        <div class="doc-title">${o.docTitle}</div>
       </div>
     </div>
-    <div class="gen-time">Generated: ${generatedTime}</div>
+    <div class="gen-time">Generated: ${o.generatedTime}</div>
   </div>
 
   <!-- Stats Bar -->
   <div class="stats-bar">
-    <div><div class="stat-label">UHID:</div><div class="stat-value">${booking.uhid || 'KGN-PENDING'}</div></div>
-    <div><div class="stat-label">TOKEN:</div><div class="stat-value">${tokenDisplay}</div></div>
-    <div><div class="stat-label">SOURCE:</div><div class="stat-value">${source}</div></div>
-    <div><div class="stat-label">DOCTOR FEES:</div><div class="stat-value">₹ ${doctorFee}</div></div>
+    <div><div class="stat-label">UHID:</div><div class="stat-value">${b.uhid || 'KGN-PENDING'}</div></div>
+    <div><div class="stat-label">TOKEN:</div><div class="stat-value">${o.tokenDisplay}</div></div>
+    <div><div class="stat-label">BOOKING ID:</div><div class="stat-value">${b.booking_id || '—'}</div></div>
+    <div><div class="stat-label">SOURCE:</div><div class="stat-value">${o.source}</div></div>
   </div>
 
   <!-- Two Column Details -->
   <div class="two-col">
     <div class="detail-box">
-      <div class="box-header">PATIENT DETAILS<span class="highlight">${patientStatusLabel}</span></div>
-      <div class="field-row"><span class="field-name">Name:</span><span class="field-val">${booking.patient_name || '—'}</span></div>
-      <div class="field-row"><span class="field-name">Age/Gender:</span><span class="field-val">${booking.age ? booking.age + ' Yrs' : '—'} / ${booking.gender || '—'}</span></div>
-      <div class="field-row"><span class="field-name">Mobile:</span><span class="field-val">+91 ${booking.mobile || '—'}</span></div>
-      <div class="field-row"><span class="field-name">Address:</span><span class="field-val">${address || '—'}</span></div>
+      <div class="box-header">PATIENT DETAILS<span class="highlight">${o.patientStatusLabel}</span></div>
+      <div class="field-row"><span class="field-name">Name:</span><span class="field-val">${b.patient_name || '—'}</span></div>
+      <div class="field-row"><span class="field-name">Age/Gender:</span><span class="field-val">${b.age ? b.age + ' Yrs' : '—'} / ${b.gender || '—'}</span></div>
+      <div class="field-row"><span class="field-name">Mobile:</span><span class="field-val">+91 ${b.mobile || '—'}</span></div>
+      <div class="field-row"><span class="field-name">Address:</span><span class="field-val">${o.address || '—'}</span></div>
     </div>
     <div class="detail-box">
       <div class="box-header">VISIT &amp; CLINICAL DETAILS</div>
-      <div class="field-row"><span class="field-name">Visit Type:</span><span class="field-val">${isIPD ? 'Hospitalization (IPD Admission)' : 'OPD Appointment'}</span></div>
-      <div class="field-row"><span class="field-name">${isIPD ? 'Admission Date:' : 'Appt Date:'}</span><span class="field-val">${appointmentDate}</span></div>
-      <div class="field-row"><span class="field-name">Dept / Doctor:</span><span class="field-val">${booking.doctor_name || 'General Doctor'}${booking.doctor_specialization ? ' — ' + booking.doctor_specialization : ''}</span></div>
-      <div class="field-row"><span class="field-name">Chief Complaint:</span><span class="field-val">${booking.problemDescription || booking.problem_description || 'Routine Consultation / Checkup'}</span></div>
+      <div class="field-row"><span class="field-name">Visit Type:</span><span class="field-val">${o.isIPD ? 'Hospitalization (IPD Admission)' : 'OPD Appointment'}</span></div>
+      <div class="field-row"><span class="field-name">${o.isIPD ? 'Admission Date:' : 'Appt Date:'}</span><span class="field-val">${o.appointmentDate}</span></div>
+      <div class="field-row"><span class="field-name">Dept / Doctor:</span><span class="field-val">${b.doctor_name || 'General Doctor'}${b.doctor_specialization ? ' — ' + b.doctor_specialization : ''}</span></div>
+      <div class="field-row"><span class="field-name">Booking Status:</span><span class="field-val" style="font-weight:700;text-transform:capitalize">${b.status || 'Confirmed'}</span></div>
+      <div class="field-row"><span class="field-name">Chief Complaint:</span><span class="field-val">${b.problemDescription || b.problem_description || 'Routine Checkup / Consultation'}</span></div>
     </div>
   </div>
 
   <!-- Vitals -->
   <div class="vitals-wrap">
-    <div class="vitals-title">VITALS SECTION (FOR CLINICAL USE)</div>
+    <div class="vitals-title">VITALS SECTION (For Clinical Use)</div>
     <div class="vitals-grid">
       <div class="vital-header">BP (mmHg)</div>
       <div class="vital-header">Pulse (bpm)</div>
       <div class="vital-header">Temp (°F)</div>
       <div class="vital-header">Weight (kg)</div>
       <div class="vital-header">SpO2 (%)</div>
-      <div class="vital-cell">${rxVitals.bp || ''}</div>
-      <div class="vital-cell">${rxVitals.pulse || ''}</div>
-      <div class="vital-cell">${rxVitals.temp || ''}</div>
-      <div class="vital-cell">${rxVitals.weight || ''}</div>
-      <div class="vital-cell">${rxVitals.spo2 || ''}</div>
+      <div class="vital-cell"></div><div class="vital-cell"></div><div class="vital-cell"></div><div class="vital-cell"></div><div class="vital-cell"></div>
     </div>
   </div>
 
-  <!-- Doctor Notes -->
+  <!-- Prescription -->
   <div class="rx-box">
-    <div class="rx-title">DOCTOR'S NOTES</div>
-    ${rxNotes ? `<div class="notes-text">${rxNotes}</div>` : `<div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div>`}
-  </div>
-
-  <!-- Prescription Table (15 Rows) -->
-  <div class="tbl-wrap">
-    <div class="tbl-header">
-      <span>PRESCRIPTION</span>
-      <span class="tbl-sub">(Doctor can mark applicable medicines for the patient)</span>
-    </div>
-    <table class="p-tbl">
-      <thead>
-        <tr>
-          <th style="width:38px; text-align:center;">Sr. No.</th>
-          <th>Medicine Name</th>
-          <th style="width:90px;">Dosage</th>
-          <th style="width:100px;">Frequency</th>
-          <th style="width:80px;">Duration</th>
-          <th style="width:120px;">Remarks</th>
-          <th style="width:38px; text-align:center;">Mark</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${medRowsHTML}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Tests Needed Table (10 Rows) -->
-  <div class="tbl-wrap">
-    <div class="tbl-header">
-      <span>TESTS NEEDED</span>
-      <span class="tbl-sub">(Doctor can mark applicable tests for the patient)</span>
-    </div>
-    <table class="p-tbl">
-      <thead>
-        <tr>
-          <th style="width:38px; text-align:center;">Sr. No.</th>
-          <th>Test Name</th>
-          <th style="width:250px;">Remarks</th>
-          <th style="width:38px; text-align:center;">Mark</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${testRowsHTML}
-      </tbody>
-    </table>
+    <div class="rx-title">DOCTOR'S NOTES &amp; PRESCRIPTION</div>
+    <div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div>
   </div>
 
   <!-- Signature -->
   <div class="sig-area">
     <div>
-      <div class="sig-box"><div class="sig-title">Doctor's Signature</div></div>
-      <div class="notice">Please present this slip at the department ${counterType} counter.<br/>कृपया इस पर्ची को संबंधित विभाग के ${hindiCounter} काउंटर पर प्रस्तुत करें।</div>
+      <div class="sig-title">Doctor's Signature</div>
+      <div class="notice">Please present this slip at the department ${o.counterType} counter.<br/>कृपया इस पर्ची को संबंधित विभाग के ${o.hindiCounter} काउंटर पर प्रस्तुत करें।</div>
     </div>
     <div class="stamp">HOSPITAL STAMP</div>
   </div>
 
   <!-- Footer -->
   <div class="footer-bar">
-    <div class="contact">WhatsApp Chatbot <strong>+91 8853991899</strong></div>
-    <div class="contact">Call Helpline Number <strong>+91 9838850287</strong></div>
-    <div class="contact">Helpdesk <strong>+91 8840376333</strong></div>
+    <div class="contact"><span class="icon-circle wa-icon">${waSvg}</span> WhatsApp Chatbot <strong>+91 8853991899</strong></div>
+    <div class="contact"><span class="icon-circle call-icon">${phoneSvg}</span> Call Helpline Number <strong>+91 9838850287</strong></div>
+    <div class="contact"><span class="icon-circle call-icon">${phoneSvg}</span> <strong>+91 8840376333</strong></div>
   </div>
-</div>
+</div>`
+  }
 
-</body>
-</html>`
+  /** Open a fresh window, write the slip HTML, and trigger print. */
+  static _openPrintWindow(booking) {
+    const html = this._buildSlipHTML(booking)
+
+    const printWin = window.open('', '_blank', 'width=900,height=700,scrollbars=yes')
+    if (!printWin) {
+      alert('Please allow pop-ups to print the patient slip.')
+      return
+    }
+
+    printWin.document.open()
+    printWin.document.write(html)
+    printWin.document.close()
+
+    // Wait for the content to render fully, then trigger print
+    printWin.onload = () => {
+      setTimeout(() => {
+        printWin.focus()
+        printWin.print()
+      }, 250)
+    }
+
+    // Fallback if onload doesn't fire (some browsers)
+    setTimeout(() => {
+      if (!printWin.closed) {
+        printWin.focus()
+        printWin.print()
+      }
+    }, 800)
   }
 }
 

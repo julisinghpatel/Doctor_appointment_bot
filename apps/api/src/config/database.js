@@ -26,7 +26,7 @@ const sql = postgres(env.databaseUrl, {
   },
 
   onclose: (connection) => {
-    logger.warn("PostgreSQL connection closed");
+    logger.debug("PostgreSQL connection closed");
   },
 
   onparameter: (key, value) => {

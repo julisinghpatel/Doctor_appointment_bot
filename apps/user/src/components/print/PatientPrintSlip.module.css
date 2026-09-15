@@ -1,8 +1,9 @@
 /* PatientPrintSlip.module.css */
 
+/* Hidden on screen by default until print trigger or modal preview */
 .printPageContainer {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #0f172a;
+  color: #1a1a1a;
   background-color: #ffffff;
   width: 100%;
   max-width: 800px;
@@ -13,24 +14,47 @@
 .pageSheet {
   display: flex;
   flex-direction: column;
+  gap: 12px;
 }
 
-/* Individual Full A4 Slip Card */
+/* Individual Half-A4 Slip (Top / Bottom) */
 .slipCard {
-  border: 1.5px solid #0284c7;
+  border: 1px solid #a8c7e0;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 12px 16px;
   background: #ffffff;
   position: relative;
   box-sizing: border-box;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 
 .ipdSlipCard {
-  border-color: #16a34a;
+  border-color: #81c784;
+}
+
+/* Divider Line between top & bottom slip */
+.slipSeparator {
+  border-top: 2px dashed #b0bec5;
+  margin: 4px 0;
+  position: relative;
+  text-align: center;
+}
+
+.cutHint {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  padding: 0 12px;
+  font-size: 10px;
+  color: #78909c;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 /* Header Section */
@@ -38,40 +62,38 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 6px;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .brandGroup {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .hospitalTitle {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 800;
-  color: #0369a1;
+  color: #0b3c5d;
   line-height: 1.1;
   margin: 0;
 }
 
 .docTitle {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
-  color: #0284c7;
-  margin-top: 1px;
+  color: #1d6fa5;
+  margin-top: 2px;
 }
 
 .ipdDocTitle {
-  color: #15803d;
+  color: #2e7d32;
 }
 
 .generatedTime {
-  font-size: 10px;
-  color: #64748b;
-  font-weight: 600;
+  font-size: 11px;
+  color: #546e7a;
+  font-weight: 500;
   text-align: right;
 }
 
@@ -79,85 +101,85 @@
 .statsBar {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  background: #e0f2fe;
-  border: 1px solid #bae6fd;
-  border-radius: 5px;
-  padding: 4px 8px;
-  margin-bottom: 6px;
-  gap: 6px;
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  gap: 8px;
 }
 
 .ipdStatsBar {
-  background: #dcfce7;
-  border-color: #bbf7d0;
+  background: #e8f5e9;
+  border-color: #c8e6c9;
 }
 
 .statBox {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
 }
 
 .statLabel {
   font-size: 9px;
   font-weight: 800;
-  color: #0369a1;
+  color: #455a64;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
 }
 
 .statValue {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: #0c4a6e;
+  color: #0d47a1;
+  margin-top: 1px;
 }
 
 .ipdStatValue {
-  color: #14532d;
+  color: #1b5e20;
 }
 
 /* Two Columns Grid: Patient Details & Visit Details */
 .twoColGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .detailsBox {
-  border: 1px solid #cbd5e1;
-  border-radius: 5px;
-  padding: 5px 8px;
-  background: #f8fafc;
+  border: 1px solid #cfd8dc;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #fafafa;
 }
 
 .boxHeader {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
-  color: #0369a1;
+  color: #263238;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 2px;
-  margin-bottom: 4px;
+  border-bottom: 1px solid #eceff1;
+  padding-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .fieldRow {
   display: flex;
-  font-size: 10px;
-  line-height: 1.35;
-  margin-bottom: 2px;
+  font-size: 11px;
+  line-height: 1.45;
+  margin-bottom: 3px;
 }
 
 .fieldName {
   font-weight: 700;
-  color: #334155;
-  min-width: 80px;
+  color: #37474f;
+  min-width: 90px;
 }
 
 .fieldVal {
-  color: #0f172a;
-  font-weight: 600;
+  color: #102a43;
+  font-weight: 500;
   flex: 1;
 }
 
@@ -166,22 +188,22 @@
   font-weight: 700;
 }
 
-/* Vitals Section */
+/* Vitals Grid Table */
 .vitalsContainer {
-  border: 1px solid #cbd5e1;
-  border-radius: 5px;
+  border: 1px solid #cfd8dc;
+  border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 
 .vitalsTitle {
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 800;
-  color: #0369a1;
-  background: #f0f9ff;
-  padding: 3px 8px;
+  color: #37474f;
+  background: #f1f5f9;
+  padding: 4px 10px;
   text-transform: uppercase;
-  border-bottom: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cfd8dc;
 }
 
 .vitalsGrid {
@@ -192,10 +214,10 @@
 }
 
 .vitalHeaderCol {
-  font-size: 8.5px;
+  font-size: 9px;
   font-weight: 700;
-  color: #0369a1;
-  padding: 2px 2px;
+  color: #475569;
+  padding: 4px 2px;
   border-right: 1px solid #e2e8f0;
   background: #f8fafc;
 }
@@ -205,13 +227,7 @@
 }
 
 .vitalCell {
-  height: 18px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #0f172a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  height: 22px;
   border-right: 1px solid #e2e8f0;
   border-top: 1px solid #e2e8f0;
 }
@@ -220,129 +236,42 @@
   border-right: none;
 }
 
-/* Doctor Notes Box */
+/* Doctor Notes / Prescription Box */
 .prescriptionBox {
-  border: 1px solid #cbd5e1;
-  border-radius: 5px;
-  padding: 5px 8px;
-  margin-bottom: 6px;
+  border: 1px solid #cfd8dc;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
   background: #ffffff;
+  min-height: 70px;
 }
 
 .prescriptionTitle {
-  font-size: 9.5px;
-  font-weight: 800;
-  color: #0369a1;
-  text-transform: uppercase;
-  margin-bottom: 2px;
-}
-
-.printedNotesText {
   font-size: 10px;
-  color: #1e293b;
-  font-weight: 600;
-  line-height: 1.35;
-  white-space: pre-wrap;
-  padding: 2px 0;
+  font-weight: 800;
+  color: #37474f;
+  text-transform: uppercase;
+  margin-bottom: 4px;
 }
 
 .ruledLines {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 12px;
+  margin-top: 10px;
 }
 
 .line {
   border-bottom: 1px solid #e2e8f0;
 }
 
-/* Table Containers (Prescription & Tests Needed) */
-.tableContainer {
-  border: 1px solid #0284c7;
-  border-radius: 5px;
-  overflow: hidden;
-  margin-bottom: 6px;
-}
-
-.tableHeaderBar {
-  background: #e0f2fe;
-  color: #0369a1;
-  font-size: 10px;
-  font-weight: 800;
-  padding: 3px 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #0284c7;
-}
-
-.tableHeaderSub {
-  font-size: 8.5px;
-  font-weight: 600;
-  color: #0284c7;
-}
-
-.printTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 9px;
-  background: #ffffff;
-}
-
-.printTable th {
-  background: #f8fafc;
-  color: #0369a1;
-  font-weight: 700;
-  padding: 2px 4px;
-  border-bottom: 1px solid #cbd5e1;
-  border-right: 1px solid #e2e8f0;
-  text-align: left;
-  line-height: 1.2;
-}
-
-.printTable th:last-child {
-  border-right: none;
-}
-
-.printTable td {
-  padding: 1.5px 4px;
-  border-bottom: 1px solid #f1f5f9;
-  border-right: 1px solid #e2e8f0;
-  color: #0f172a;
-  line-height: 1.2;
-
-  height: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.printTable td:last-child {
-  border-right: none;
-}
-
-.checkboxOutline {
-  display: inline-block;
-  width: 11px;
-  height: 11px;
-  border: 1.2px solid #0369a1;
-  border-radius: 2px;
-  text-align: center;
-  line-height: 9px;
-  font-size: 8px;
-  font-weight: 800;
-  color: #0369a1;
-  margin: 0 auto;
-}
-
-/* Signature & Stamp Footer */
+/* Doctor Signature & Hospital Stamp Footer */
 .sigArea {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-top: 4px;
-  padding-top: 2px;
+  margin-top: 6px;
+  padding-top: 4px;
 }
 
 .sigLeft {
@@ -351,66 +280,54 @@
   gap: 2px;
 }
 
-.sigBox {
-  width: 180px;
-  height: 36px;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  background: #fafafa;
-  display: flex;
-  align-items: flex-end;
-  padding: 2px 6px;
-}
-
 .sigTitle {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
-  color: #475569;
+  color: #1e293b;
 }
 
 .noticeText {
-  font-size: 8.5px;
-  color: #0284c7;
-  font-weight: 700;
+  font-size: 9px;
+  color: #64748b;
   margin-top: 2px;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .stampRight {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   color: #94a3b8;
-  border: 1px dashed #94a3b8;
-  padding: 12px 18px;
+  border: 1px dashed #cbd5e1;
+  padding: 6px 12px;
   border-radius: 4px;
   letter-spacing: 0.5px;
-  text-align: center;
 }
 
-/* Footer Contacts Bar */
+/* Bottom Footer Contacts Bar (Icons & Phone Numbers) */
 .footerBar {
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  background: #e0f2fe;
-  border: 1px solid #bae6fd;
-  border-radius: 5px;
-  padding: 4px 8px;
-  margin-top: 6px;
+  justify-content: flex-start;
+  gap: 24px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin-top: 8px;
 }
 
 .contactItem {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 9.5px;
+  gap: 6px;
+  font-size: 11px;
   font-weight: 700;
-  color: #0369a1;
+  color: #15803d;
 }
 
 .iconCircle {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #25d366;
   color: #ffffff;
@@ -423,20 +340,20 @@
   background: #0284c7;
 }
 
-/* ── Screen: standard portal preview ── */
+/* ── Screen: the print portal stays invisible until printing ── */
 @media screen {
   #print-portal-root {
     display: none;
   }
 }
 
-/* ── Page setup: full A4 page without multi-page break ── */
+/* ── Page setup (must be top-level — browsers drop @page nested in @media) ── */
 @page {
   size: A4 portrait;
-  margin: 4mm 6mm;
+  margin: 6mm 8mm;
 }
 
-/* ── Print styling ── */
+/* ── Print: show ONLY the slip, hide the whole dashboard ── */
 @media print {
   body > :not(#print-portal-root) {
     display: none !important;
