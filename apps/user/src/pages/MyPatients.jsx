@@ -1,7 +1,10 @@
 import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Search, Eye, Stethoscope } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Search, Eye, Stethoscope, CheckCircle, CheckCheck, Pill, Printer, Calendar, Filter, ArrowUpDown } from 'lucide-react'
 import { bookingService } from '../services/bookingService'
+import { printService } from '../services/printService'
+import { PrintSlipHandler } from '../services/PrintSlipHandler'
 import { useAuth } from '../hooks/useAuth'
 import { useDebounce } from '../hooks/useDebounce'
 import { formatDate, formatPhone, getInitials } from '../utils/formatters'
@@ -11,23 +14,29 @@ import Table from '../components/common/Table'
 import Modal from '../components/common/Modal'
 import StatusBadge from '../components/common/StatusBadge'
 import { Loader } from '../components/common/Loader'
+import toast from 'react-hot-toast'
 import styles from './MyPatients.module.css'
 
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, CheckCheck } from 'lucide-react'
-import toast from 'react-hot-toast'
-
 /**
- * Doctor's "My Patients" — only bookings where doctorId == my doctorId.
- * Derived from bookings (no junction table). Token column doubles as the
- * daily queue serial (R9).
+ * Doctor's "My Patients" queue page with advanced filters (date picker,
+ * status filter, name/UHID/token search, and sorting).
+ * Clicking "Prescribe" opens the dedicated full-screen Prescription page.
  */
 export default function MyPatients() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
+
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
   const [page, setPage] = useState(1)
+
+  // Advanced Filters & Sort State
+  const [dateFilter, setDateFilter] = useState('all') // 'all', 'today', 'custom'
+  const [customDate, setCustomDate] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all') // 'all', 'confirmed', 'pending', 'completed'
+  const [sortBy, setSortBy] = useState('token') // 'token', 'date', 'name', 'status'
+
   const limit = 10
   const debouncedSearch = useDebounce(search, 400)
 
@@ -47,16 +56,61 @@ export default function MyPatients() {
     onError: () => toast.error('Failed to update patient status'),
   })
 
+  const handlePrintSlip = async (booking) => {
+    try {
+      const slipData = await printService.getSlipData(booking)
+      PrintSlipHandler.printBooking(slipData)
+    } catch (err) {
+      toast.error('Failed to prepare print slip')
+    }
+  }
+
+  // Filter & Sort Logic
   const rows = useMemo(() => {
     let list = (bookingsData?.data || []).filter((b) => b.status !== 'cancelled')
+
+    // 1. Text Search Filter (Name, UHID, Token, Mobile)
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase()
       list = list.filter(
-        (b) => b.patient_name.toLowerCase().includes(q) || (b.token_number || '').toLowerCase().includes(q)
+        (b) =>
+          b.patient_name.toLowerCase().includes(q) ||
+          (b.uhid || '').toLowerCase().includes(q) ||
+          (b.token_number || '').toLowerCase().includes(q) ||
+          (b.mobile || '').includes(q)
       )
     }
-    return [...list].sort((a, b) => (a.token_number || '').localeCompare(b.token_number || ''))
-  }, [bookingsData, debouncedSearch])
+
+    // 2. Date Filter
+    const todayStr = new Date().toISOString().split('T')[0]
+    if (dateFilter === 'today') {
+      list = list.filter((b) => (b.date || b.created_at || '').startsWith(todayStr))
+    } else if (dateFilter === 'custom' && customDate) {
+      list = list.filter((b) => (b.date || b.created_at || '').startsWith(customDate))
+    }
+
+    // 3. Status Filter
+    if (statusFilter !== 'all') {
+      list = list.filter((b) => b.status?.toLowerCase() === statusFilter.toLowerCase())
+    }
+
+    // 4. Sorting
+    return [...list].sort((a, b) => {
+      if (sortBy === 'token') {
+        return (a.token_number || '').localeCompare(b.token_number || '')
+      }
+      if (sortBy === 'date') {
+        return new Date(b.date || b.created_at || 0) - new Date(a.date || a.created_at || 0)
+      }
+      if (sortBy === 'name') {
+        return (a.patient_name || '').localeCompare(b.patient_name || '')
+      }
+      if (sortBy === 'status') {
+        return (a.status || '').localeCompare(b.status || '')
+      }
+      return 0
+    })
+  }, [bookingsData, debouncedSearch, dateFilter, customDate, statusFilter, sortBy])
 
   const total = rows.length
   const totalPages = Math.max(1, Math.ceil(total / limit))
@@ -83,13 +137,33 @@ export default function MyPatients() {
           <span className={styles.patientName}>{b.patient_name}</span>
         </div>
       </td>
-      <td style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-primary)', color: 'var(--text-secondary)', fontSize: '13px' }}>
+      <td
+        style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border-primary)',
+          color: 'var(--text-secondary)',
+          fontSize: '13px',
+        }}
+      >
         {b.uhid || '—'}
       </td>
-      <td style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-primary)', color: 'var(--text-secondary)' }}>
+      <td
+        style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border-primary)',
+          color: 'var(--text-secondary)',
+        }}
+      >
         {formatPhone(b.mobile)}
       </td>
-      <td style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-primary)', color: 'var(--text-secondary)', fontSize: '13px' }}>
+      <td
+        style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border-primary)',
+          color: 'var(--text-secondary)',
+          fontSize: '13px',
+        }}
+      >
         {formatDate(b.date)}
       </td>
       <td style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-primary)' }}>
@@ -97,29 +171,105 @@ export default function MyPatients() {
       </td>
       <td style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-primary)' }}>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          {/* Prescribe Page Button */}
           <button
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, color: 'var(--text-secondary)', background: 'var(--bg-elevated)' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '5px 10px',
+              borderRadius: 6,
+              fontSize: '12px',
+              fontWeight: 700,
+              color: 'var(--accent-blue)',
+              background: 'rgba(56, 189, 248, 0.14)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              cursor: 'pointer',
+            }}
+            onClick={() => navigate(`/prescribe/${b.id}`)}
+            title="Open Doctor Prescription Page"
+          >
+            <Pill size={14} /> Prescribe
+          </button>
+
+          {/* Print OPD Slip */}
+          <button
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: 6,
+              color: 'var(--text-secondary)',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-primary)',
+              cursor: 'pointer',
+            }}
+            onClick={() => handlePrintSlip(b)}
+            title="Print Full OPD Slip"
+          >
+            <Printer size={15} />
+          </button>
+
+          {/* View Patient Details */}
+          <button
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: 6,
+              color: 'var(--text-secondary)',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-primary)',
+              cursor: 'pointer',
+            }}
             onClick={() => setSelected(b)}
             title="View Details"
           >
-            <Eye size={16} />
+            <Eye size={15} />
           </button>
+
           {b.status === 'confirmed' && (
             <button
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, color: 'var(--accent-blue)', background: 'rgba(88, 166, 255, 0.12)' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                borderRadius: 6,
+                color: 'var(--accent-blue)',
+                background: 'rgba(88, 166, 255, 0.12)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
               onClick={() => statusMutation.mutate({ id: b.id, status: 'completed' })}
               title="Mark Visit Completed"
             >
-              <CheckCheck size={16} />
+              <CheckCheck size={15} />
             </button>
           )}
           {b.status === 'pending' && (
             <button
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, color: 'var(--primary)', background: 'var(--primary-glow)' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                borderRadius: 6,
+                color: 'var(--primary)',
+                background: 'var(--primary-glow)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
               onClick={() => statusMutation.mutate({ id: b.id, status: 'confirmed' })}
               title="Confirm Patient"
             >
-              <CheckCircle size={16} />
+              <CheckCircle size={15} />
             </button>
           )}
         </div>
@@ -127,10 +277,12 @@ export default function MyPatients() {
     </tr>
   )
 
-  if (!user?.doctorId) {
+  if (!user?.doctorId && user?.role === 'doctor') {
     return (
       <div className={styles.page}>
-        <Card><p style={{ color: 'var(--text-muted)' }}>No doctor profile linked to this login.</p></Card>
+        <Card>
+          <p style={{ color: 'var(--text-muted)' }}>No doctor profile linked to this login.</p>
+        </Card>
       </div>
     )
   }
@@ -139,32 +291,92 @@ export default function MyPatients() {
     <div className={styles.page}>
       <PageHeader
         title="My Patients"
-        subtitle="Only patients assigned to you · token doubles as your daily queue serial"
+        subtitle="Assigned patient queue · Search, filter by date/status, record prescriptions & print OPD slips"
         icon={Stethoscope}
       />
-      <div className={styles.searchWrapper}>
-        <Search className={styles.searchIcon} />
-        <input
-          className={styles.searchInput}
-          placeholder="Search by patient or token (T-001)..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          id="mypatients-search"
-        />
+
+      {/* Filter & Search Bar */}
+      <div className={styles.filterBar}>
+        <div className={styles.searchWrapper}>
+          <Search className={styles.searchIcon} />
+          <input
+            className={styles.searchInput}
+            placeholder="Search by patient name, UHID, or token (T-001)..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
+            id="mypatients-search"
+          />
+        </div>
+
+        {/* Date Filter */}
+        <select
+          className={styles.select}
+          value={dateFilter}
+          onChange={(e) => {
+            setDateFilter(e.target.value)
+            setPage(1)
+          }}
+        >
+          <option value="all">All Dates</option>
+          <option value="today">Today's Queue</option>
+          <option value="custom">Specific Date</option>
+        </select>
+
+        {dateFilter === 'custom' && (
+          <input
+            type="date"
+            className={styles.select}
+            value={customDate}
+            onChange={(e) => setCustomDate(e.target.value)}
+          />
+        )}
+
+        {/* Status Filter */}
+        <select
+          className={styles.select}
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value)
+            setPage(1)
+          }}
+        >
+          <option value="all">All Statuses</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+        </select>
+
+        {/* Sort Selector */}
+        <select
+          className={styles.select}
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+        >
+          <option value="token">Sort: Token Number</option>
+          <option value="date">Sort: Date & Time</option>
+          <option value="name">Sort: Patient Name</option>
+          <option value="status">Sort: Visit Status</option>
+        </select>
       </div>
 
       <Card noPadding>
-        {isLoading ? <Loader /> : (
+        {isLoading ? (
+          <Loader />
+        ) : (
           <Table
             columns={columns}
             data={paginatedRows}
             renderRow={renderRow}
             pagination={pagination}
-            emptyMessage="No patients assigned to you yet"
+            emptyMessage="No patients match your search and filter criteria"
           />
         )}
       </Card>
 
+      {/* Patient Detail Modal */}
       <Modal
         isOpen={!!selected}
         onClose={() => setSelected(null)}
@@ -172,15 +384,42 @@ export default function MyPatients() {
       >
         {selected && (
           <div className={styles.detailList}>
-            <div className={styles.detailRow}><span>Token</span><strong>{selected.token_number || '—'}</strong></div>
-            <div className={styles.detailRow}><span>UHID</span><strong>{selected.uhid || '—'}</strong></div>
-            <div className={styles.detailRow}><span>Booking ID</span><strong>{selected.booking_id}</strong></div>
-            <div className={styles.detailRow}><span>Patient Name</span><strong>{selected.patient_name}</strong></div>
-            <div className={styles.detailRow}><span>Mobile</span><strong>{formatPhone(selected.mobile)}</strong></div>
-            <div className={styles.detailRow}><span>Doctor</span><strong>{selected.doctor_name || '—'}</strong></div>
-            <div className={styles.detailRow}><span>Service</span><strong>{selected.service_name || '—'}</strong></div>
-            <div className={styles.detailRow}><span>Date</span><strong>{formatDate(selected.date)}</strong></div>
-            <div className={styles.detailRow}><span>Status</span><StatusBadge status={selected.status} /></div>
+            <div className={styles.detailRow}>
+              <span>Token</span>
+              <strong>{selected.token_number || '—'}</strong>
+            </div>
+            <div className={styles.detailRow}>
+              <span>UHID</span>
+              <strong>{selected.uhid || '—'}</strong>
+            </div>
+            <div className={styles.detailRow}>
+              <span>Booking ID</span>
+              <strong>{selected.booking_id}</strong>
+            </div>
+            <div className={styles.detailRow}>
+              <span>Patient Name</span>
+              <strong>{selected.patient_name}</strong>
+            </div>
+            <div className={styles.detailRow}>
+              <span>Mobile</span>
+              <strong>{formatPhone(selected.mobile)}</strong>
+            </div>
+            <div className={styles.detailRow}>
+              <span>Doctor</span>
+              <strong>{selected.doctor_name || '—'}</strong>
+            </div>
+            <div className={styles.detailRow}>
+              <span>Service</span>
+              <strong>{selected.service_name || '—'}</strong>
+            </div>
+            <div className={styles.detailRow}>
+              <span>Date</span>
+              <strong>{formatDate(selected.date)}</strong>
+            </div>
+            <div className={styles.detailRow}>
+              <span>Status</span>
+              <StatusBadge status={selected.status} />
+            </div>
           </div>
         )}
       </Modal>

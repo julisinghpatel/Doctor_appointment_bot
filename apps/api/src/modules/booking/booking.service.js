@@ -215,6 +215,10 @@ class BookingService {
   async getBookingsByPhone(phone) {
     return bookingRepo.findByPatientPhone(phone);
   }
+
+  async updatePrescription(id, prescriptionData) {
+    return bookingRepo.updatePrescription(id, prescriptionData);
+  }
 }
 
 export default new BookingService();

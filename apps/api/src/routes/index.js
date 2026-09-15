@@ -13,6 +13,7 @@ import authRoutes from './auth.routes.js'
 import medicineOrderRoutes from '../modules/medicine/medicineOrder.routes.js'
 import userRoutes from '../modules/user/user.routes.js'
 import { parseAnyDate } from '../utils/dateHelpers.js'
+import sql from '../config/database.js'
 
 const { SUPERADMIN, ADMIN, DOCTOR, RECEPTIONIST, PHARMACY } = ROLES
 const STAFF = [SUPERADMIN, ADMIN, RECEPTIONIST, PHARMACY]
@@ -88,6 +89,107 @@ router.use('/bookings', requireRole(SUPERADMIN, ADMIN, DOCTOR, RECEPTIONIST), bo
 
 // Medicine orders — pharmacy full, receptionist read-only
 router.use('/medicine-orders', requireRole(SUPERADMIN, ADMIN, PHARMACY, RECEPTIONIST, DOCTOR), medicineOrderRoutes)
+
+// Medicines master list
+router.get('/medicines', requireRole(...STAFF, DOCTOR), async (req, res, next) => {
+  try {
+    const { department_id, search } = req.query
+    let rows = []
+    if (search) {
+      const q = `%${search}%`
+      if (department_id) {
+        rows = await sql`SELECT * FROM medicines WHERE is_active = true AND department_id = ${department_id} AND name ILIKE ${q} ORDER BY name ASC`
+      } else {
+        rows = await sql`SELECT * FROM medicines WHERE is_active = true AND name ILIKE ${q} ORDER BY name ASC`
+      }
+    } else if (department_id) {
+      rows = await sql`SELECT * FROM medicines WHERE is_active = true AND department_id = ${department_id} ORDER BY name ASC`
+    } else {
+      rows = await sql`SELECT * FROM medicines WHERE is_active = true ORDER BY name ASC`
+    }
+    res.json({ data: rows })
+  } catch (err) { next(err) }
+})
+
+const saveMedicineHandler = async (req, res, next) => {
+  try {
+    const { name, department_id, dosage_form, default_dosage, default_frequency, default_duration } = req.body
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Medicine name is required' })
+    }
+    const nameTrimmed = name.trim()
+    const dId = department_id ? Number(department_id) : null
+
+    const [existing] = await sql`
+      SELECT * FROM medicines 
+      WHERE LOWER(name) = LOWER(${nameTrimmed})
+        AND (department_id IS NULL OR department_id = ${dId})
+      LIMIT 1
+    `
+    if (existing) {
+      return res.json({ success: true, data: existing, created: false })
+    }
+
+    const [created] = await sql`
+      INSERT INTO medicines (department_id, name, dosage_form, default_dosage, default_frequency, default_duration, is_active)
+      VALUES (${dId}, ${nameTrimmed}, ${dosage_form || 'Tab'}, ${default_dosage || ''}, ${default_frequency || ''}, ${default_duration || ''}, true)
+      RETURNING *
+    `
+    res.status(201).json({ success: true, data: created, created: true })
+  } catch (err) { next(err) }
+}
+
+router.post('/medicines', requireRole(...STAFF, DOCTOR), saveMedicineHandler)
+router.post('/save-medicine', requireRole(...STAFF, DOCTOR), saveMedicineHandler)
+router.post('/savemedicine', requireRole(...STAFF, DOCTOR), saveMedicineHandler)
+
+// Lab tests master list
+router.get('/lab-tests', requireRole(...STAFF, DOCTOR), async (req, res, next) => {
+  try {
+    const { department_id, search } = req.query
+    let rows = []
+    if (search) {
+      const q = `%${search}%`
+      rows = await sql`SELECT * FROM lab_tests WHERE is_active = true AND name ILIKE ${q} ORDER BY name ASC`
+    } else if (department_id) {
+      rows = await sql`SELECT * FROM lab_tests WHERE is_active = true AND (department_id IS NULL OR department_id = ${department_id}) ORDER BY name ASC`
+    } else {
+      rows = await sql`SELECT * FROM lab_tests WHERE is_active = true ORDER BY name ASC`
+    }
+    res.json({ data: rows })
+  } catch (err) { next(err) }
+})
+
+const saveLabTestHandler = async (req, res, next) => {
+  try {
+    const { name, department_id, category } = req.body
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Test name is required' })
+    }
+    const testTrimmed = name.trim()
+    const dId = department_id ? Number(department_id) : null
+
+    const [existing] = await sql`
+      SELECT * FROM lab_tests 
+      WHERE LOWER(name) = LOWER(${testTrimmed})
+      LIMIT 1
+    `
+    if (existing) {
+      return res.json({ success: true, data: existing, created: false })
+    }
+
+    const [created] = await sql`
+      INSERT INTO lab_tests (department_id, name, category, is_active)
+      VALUES (${dId}, ${testTrimmed}, ${category || 'General'}, true)
+      RETURNING *
+    `
+    res.status(201).json({ success: true, data: created, created: true })
+  } catch (err) { next(err) }
+}
+
+router.post('/lab-tests', requireRole(...STAFF, DOCTOR), saveLabTestHandler)
+router.post('/save-lab-test', requireRole(...STAFF, DOCTOR), saveLabTestHandler)
+router.post('/savelabtest', requireRole(...STAFF, DOCTOR), saveLabTestHandler)
 
 // Staff management — superadmin + admin
 router.use('/users', requireRole(SUPERADMIN, ADMIN), userRoutes)

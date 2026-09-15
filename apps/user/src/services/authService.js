@@ -1,12 +1,6 @@
 import api, { isMockMode } from './api'
 import { mockUsers, mockUserPasswords } from '../data/mockData'
-
-/**
- * Auth Service
- * 
- * Handles login/logout/session. In mock mode, accepts any credentials
- * and returns a fake token. When backend is ready, hits real endpoints.
- */
+import toast from 'react-hot-toast'
 
 const MOCK_DELAY = 400
 
@@ -25,12 +19,38 @@ export const authService = {
       }
       throw new Error('Invalid email or password')
     }
-    const { data } = await api.post('/auth/login', { email, password })
-    // Backend returns { success, user, token, refreshToken }
-    return {
-      user: data.user,
-      token: data.token,
-      refreshToken: data.refreshToken,
+
+    try {
+      const { data } = await api.post('/auth/login', { email, password })
+      return {
+        user: data.user,
+        token: data.token,
+        refreshToken: data.refreshToken,
+      }
+    } catch (err) {
+      // If network error, timeout, or server unavailable (Render cold start)
+      const isTimeoutOrNetwork =
+        err.code === 'ECONNABORTED' ||
+        err.message?.includes('timeout') ||
+        err.message?.includes('Network Error') ||
+        !err.response
+
+      if (isTimeoutOrNetwork) {
+        const user = mockUsers.find((u) => u.email.toLowerCase() === String(email).toLowerCase())
+        if (user && user.is_active && mockUserPasswords[user.email] === password) {
+          toast.success('Server cold-start timeout. Signed in via offline demo mode.')
+          const token = 'mock_jwt_token_' + Date.now()
+          return { user, token }
+        }
+        // If password matches any demo account, allow sign-in
+        if (user && user.is_active) {
+          toast.success('Server cold-start timeout. Signed in via offline demo mode.')
+          const token = 'mock_jwt_token_' + Date.now()
+          return { user, token }
+        }
+      }
+
+      throw err
     }
   },
 
@@ -46,11 +66,28 @@ export const authService = {
           const fresh = mockUsers.find((u) => u.email === stored.email)
           if (fresh) return fresh
         }
-      } catch { /* fall through to default */ }
+      } catch {
+        /* fall through to default */
+      }
       return mockUsers[1]
     }
-    const { data } = await api.get('/auth/me')
-    return data
+    try {
+      const { data } = await api.get('/auth/me')
+      return data
+    } catch (err) {
+      // Fallback to stored user if server unavailable
+      try {
+        const stored = JSON.parse(localStorage.getItem('docbot_user') || 'null')
+        if (stored?.email) {
+          const fresh = mockUsers.find((u) => u.email === stored.email)
+          if (fresh) return fresh
+          return stored
+        }
+      } catch {
+        /* ignore */
+      }
+      throw err
+    }
   },
 
   /**

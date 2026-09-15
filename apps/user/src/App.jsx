@@ -12,23 +12,10 @@ import Staff from './pages/Staff'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
+import PrescriptionPage from './pages/PrescriptionPage'
 import { useAuth } from './hooks/useAuth'
+import { homeForRole, ALL_STAFF } from './utils/constants'
 import './App.css'
-
-/**
- * Role home pages — where each role lands after login.
- */
-export const ROLE_HOME = {
-  superadmin: '/',
-  admin: '/',
-  doctor: '/my-patients',
-  receptionist: '/appointments',
-  pharmacy: '/medicine-orders',
-}
-
-export function homeForRole(role) {
-  return ROLE_HOME[role] || '/'
-}
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuth()
@@ -53,8 +40,6 @@ function RequireRole({ roles, children }) {
   return children
 }
 
-const ALL_STAFF = ['superadmin', 'admin', 'doctor', 'receptionist', 'pharmacy']
-
 export default function App() {
   return (
     <Routes>
@@ -73,7 +58,8 @@ export default function App() {
         <Route path="medicine-orders" element={<RequireRole roles={['superadmin', 'admin', 'pharmacy', 'receptionist', 'doctor']}><MedicineOrders /></RequireRole>} />
         <Route path="doctors" element={<RequireRole roles={['superadmin', 'admin']}><Doctors /></RequireRole>} />
         <Route path="patients" element={<RequireRole roles={['superadmin', 'admin', 'receptionist', 'pharmacy']}><Patients /></RequireRole>} />
-        <Route path="my-patients" element={<RequireRole roles={['doctor']}><MyPatients /></RequireRole>} />
+        <Route path="my-patients" element={<RequireRole roles={['doctor', 'admin', 'superadmin']}><MyPatients /></RequireRole>} />
+        <Route path="prescribe/:bookingId" element={<RequireRole roles={['doctor', 'admin', 'superadmin']}><PrescriptionPage /></RequireRole>} />
         <Route path="register" element={<RequireRole roles={['superadmin', 'admin', 'receptionist']}><Register /></RequireRole>} />
         <Route path="staff" element={<RequireRole roles={['superadmin', 'admin']}><Staff /></RequireRole>} />
         <Route path="reports" element={<RequireRole roles={['superadmin', 'admin']}><Reports /></RequireRole>} />
@@ -83,5 +69,3 @@ export default function App() {
     </Routes>
   )
 }
-
-export { ALL_STAFF }

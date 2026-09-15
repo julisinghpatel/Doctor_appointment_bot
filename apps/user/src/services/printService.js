@@ -24,6 +24,7 @@ function mergeSlipFields(row, patient, doctorSpec) {
   // code without a channel means the offline front desk.
   const source = row.booking_source || row.bookingSource || (row.created_by ? 'offline' : 'whatsapp')
   const pObj = (row.patientId && typeof row.patientId === 'object') ? row.patientId : {}
+  const rx = row.prescription || row.meta?.prescription || null
   return {
     ...row,
     booking_source: source,
@@ -38,6 +39,8 @@ function mergeSlipFields(row, patient, doctorSpec) {
     isOld: Boolean(row.isOld || row.is_old || pObj.isOld || patient?.isOld || patient?.is_old),
     doctor_name: row.doctor_name || row.doctorId?.name || '',
     doctor_specialization: row.doctor_specialization || doctorSpec || '',
+    consultation_fee: row.consultation_fee || row.doctor_fee || 500,
+    prescription: rx,
     source_label: SOURCE_LABELS[source] || '—',
   }
 }

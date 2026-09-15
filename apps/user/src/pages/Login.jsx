@@ -11,7 +11,7 @@ import {
   UserCheck
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { homeForRole } from '../App'
+import { homeForRole } from '../utils/constants'
 import { mockUsers, mockUserPasswords } from '../data/mockData'
 import styles from './Login.module.css'
 

@@ -24,6 +24,8 @@ function mapBooking(row) {
     vitalSpo2: meta.vitalSpo2 || '',
     category: meta.category || '',
     visitNumber: meta.visitNumber || null,
+    prescription: meta.prescription || null,
+    meta: meta,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     address: row.patient_address || '',
@@ -248,6 +250,92 @@ class BookingRepository {
       UPDATE bookings
       SET
         meta = ${sql.json(newMeta)},
+        updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING id
+    `
+    if (!row) return null
+    return this.findById(row.id)
+  }
+
+  async updatePrescription(id, prescriptionData) {
+    const [existing] = await sql`SELECT meta, department_id FROM bookings WHERE id = ${id}`
+    const currentMeta = existing?.meta || {}
+    const deptId = existing?.department_id || null
+    const rxPayload = prescriptionData.prescription || prescriptionData
+
+    const medicinesList = rxPayload.medicines || []
+    const testsList = rxPayload.tests || []
+
+    // 1. Auto-insert new medicines into master 'medicines' table if not exists
+    for (const med of medicinesList) {
+      if (!med.name || !med.name.trim()) continue
+      const nameTrimmed = med.name.trim()
+      try {
+        const [found] = await sql`
+          SELECT id FROM medicines 
+          WHERE LOWER(name) = LOWER(${nameTrimmed})
+            AND (department_id IS NULL OR department_id = ${deptId})
+          LIMIT 1
+        `
+        if (!found) {
+          await sql`
+            INSERT INTO medicines (department_id, name, default_dosage, default_frequency, default_duration, is_active)
+            VALUES (${deptId}, ${nameTrimmed}, ${med.dosage || ''}, ${med.frequency || ''}, ${med.duration || ''}, true)
+          `
+        }
+      } catch (err) {
+        // Ignore duplicate insert errors gracefully
+      }
+    }
+
+    // 2. Auto-insert new lab tests into master 'lab_tests' table if not exists
+    for (const t of testsList) {
+      if (!t.name || !t.name.trim()) continue
+      const testTrimmed = t.name.trim()
+      try {
+        const [found] = await sql`
+          SELECT id FROM lab_tests 
+          WHERE LOWER(name) = LOWER(${testTrimmed})
+          LIMIT 1
+        `
+        if (!found) {
+          await sql`
+            INSERT INTO lab_tests (department_id, name, category, is_active)
+            VALUES (${deptId}, ${testTrimmed}, 'General', true)
+          `
+        }
+      } catch (err) {
+        // Ignore duplicate insert errors gracefully
+      }
+    }
+
+    // 3. Store lightweight prescription payload on booking
+    const newMeta = {
+      ...currentMeta,
+      prescription: {
+        vitals: rxPayload.vitals || {},
+        doctor_notes: rxPayload.doctor_notes || '',
+        medicines: medicinesList.map(m => ({
+          name: m.name,
+          dosage: m.dosage || '',
+          frequency: m.frequency || '',
+          duration: m.duration || '',
+          remarks: m.remarks || '',
+        })),
+        tests: testsList.map(t => ({
+          name: t.name,
+          remarks: t.remarks || '',
+        })),
+        updated_at: new Date().toISOString(),
+      },
+    }
+
+    const [row] = await sql`
+      UPDATE bookings
+      SET
+        meta = ${sql.json(newMeta)},
+        status = 'completed',
         updated_at = NOW()
       WHERE id = ${id}
       RETURNING id

@@ -1,0 +1,264 @@
+/* PrescriptionModal.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--text-primary);
+}
+
+.patientSummaryBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.patientInfoGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.patientTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.patientSub {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tokenBadge {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent-blue);
+  background: rgba(56, 189, 248, 0.12);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+/* Sections */
+.sectionCard {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: 8px;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Vitals Inputs */
+.vitalsGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.vitalField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.input {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  border-color: var(--accent-blue);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 60px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* Medicine & Test Search Filter Bar */
+.searchControls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.searchBox {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+}
+
+.searchInput {
+  width: 100%;
+  padding-left: 32px;
+}
+
+.select {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+/* Quick Add Chips */
+.chipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chip:hover {
+  background: var(--primary-glow);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+/* Tables */
+.rxTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.rxTable th {
+  text-align: left;
+  padding: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.rxTable td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-primary);
+  vertical-align: middle;
+}
+
+.removeBtn {
+  background: transparent;
+  border: none;
+  color: var(--status-error);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.removeBtn:hover {
+  background: rgba(248, 81, 73, 0.12);
+}
+
+/* Footer Actions */
+.footerActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--border-primary);
+  padding-top: 14px;
+  margin-top: 6px;
+}
+
+.cancelBtn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saveBtn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-blue);
+  color: var(--accent-blue);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.savePrintBtn {
+  background: var(--accent-blue);
+  border: none;
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+}
+
+.savePrintBtn:hover {
+  opacity: 0.92;
+}

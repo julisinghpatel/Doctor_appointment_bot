@@ -1,19 +1,21 @@
 import { formatDate } from '../utils/formatters'
-import { mockMedicines, mockLabTests } from '../data/mockData'
 import { printService } from './printService'
 
 /**
- * PrintSlipHandler — Opens a dedicated print window with the patient slip
- * rendered as self-contained HTML + inline CSS. Opens window synchronously
- * to prevent browser popup blockers.
+ * DoctorPrescriptionPrintHandler — Specialized print handler for Doctor's
+ * Digital OPD Consultation & Prescription Slip.
+ * - Renders ONLY prescribed medicines and ONLY ordered lab tests
+ * - Displays Hospital Brand Logo (/image/image.png)
+ * - Resolves full patient address details
+ * - Expands doctor notes section space
  */
-export class PrintSlipHandler {
+export class DoctorPrescriptionPrintHandler {
   /**
-   * Print a single booking slip.
+   * Print a doctor consultation slip.
    * @param {Object} booking
    */
-  static async printBooking(booking) {
-    if (!booking) return console.warn('PrintSlipHandler: No booking provided')
+  static async printPrescription(booking) {
+    if (!booking) return console.warn('DoctorPrescriptionPrintHandler: No booking provided')
 
     // 1. Open popup window SYNCHRONOUSLY before async calls to prevent browser popup blocking
     let printWin = null
@@ -24,35 +26,39 @@ export class PrintSlipHandler {
         printWin.document.write(`
           <!DOCTYPE html>
           <html>
-          <head><title>Loading OPD Slip...</title></head>
+          <head><title>Preparing Doctor Prescription...</title></head>
           <body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:90vh; color:#0369a1;">
             <div style="font-size:18px; font-weight:700; margin-bottom:8px;">KG Nanda Hospital</div>
-            <div style="font-size:14px; color:#64748b;">Preparing OPD Consultation Slip for printing...</div>
+            <div style="font-size:14px; color:#64748b;">Generating Doctor Prescription Slip...</div>
           </body>
           </html>
         `)
         printWin.document.close()
       }
     } catch (e) {
-      console.warn('Popup window blocked, fallback to direct print', e)
+      console.warn('Popup window blocked, fallback to window.print()', e)
     }
 
-    // 2. Fetch full enriched slip data
+    // 2. Fetch enriched slip details
     let slipData = booking
     try {
       slipData = await printService.getSlipData(booking)
     } catch (err) {
-      console.warn('Could not fetch additional slip details, using provided booking object', err)
+      console.warn('Using provided booking object for prescription print', err)
+    }
+
+    // Preserve locally passed prescription if available on booking
+    if (booking.prescription) {
+      slipData.prescription = booking.prescription
     }
 
     // 3. Populate print window HTML
     if (printWin && !printWin.closed) {
-      const html = this._buildSlipHTML(slipData)
+      const html = this._buildPrescriptionHTML(slipData)
       printWin.document.open()
       printWin.document.write(html)
       printWin.document.close()
 
-      // Trigger print after rendering
       const triggerPrint = () => {
         try {
           printWin.focus()
@@ -65,19 +71,18 @@ export class PrintSlipHandler {
       printWin.onload = () => setTimeout(triggerPrint, 300)
       setTimeout(triggerPrint, 600)
     } else {
-      // Fallback if popup blocked: trigger browser window.print()
       window.print()
     }
   }
 
-  /** Build the full HTML document for the print window. */
-  static _buildSlipHTML(booking) {
+  /** Build HTML document for Doctor's Prescription slip */
+  static _buildPrescriptionHTML(booking) {
     const isIPD =
       booking.type === 'HOSPITALIZATION' ||
       booking.service_name?.toLowerCase().includes('ipd') ||
       booking.service_name?.toLowerCase().includes('hospitalization')
 
-    const docTitle = isIPD ? 'IPD Admission Ticket' : 'OPD Consultation Slip'
+    const docTitle = isIPD ? 'IPD Doctor Prescription' : 'OPD Doctor Consultation Slip'
     const isOldPatient = Boolean(booking.isOld || booking.is_old)
     const patientStatusLabel = isOldPatient ? ' (Old Patient पुराना मरीज)' : ' (नया मरीज)'
 
@@ -100,18 +105,17 @@ export class PrintSlipHandler {
     const source = booking.source_label || booking.created_by || booking.bookingSource || 'WhatsApp Bot'
     const doctorFee = booking.consultation_fee || booking.doctor_fee || 500
 
+    // Full Address Resolution
     const addrLine = booking.address || booking.patient_address || booking.patientId?.address || booking.patient?.address || ''
     const distLine = booking.district || booking.patient_district || booking.patientId?.district || booking.patient?.district || ''
     const pinLine = booking.pinCode || booking.pincode || booking.pin_code || booking.patient_pin_code || booking.patientId?.pinCode || booking.patient?.pinCode || ''
     const addressParts = [addrLine, distLine, pinLine].filter(Boolean)
-    const address = addressParts.length > 0 ? addressParts.join(', ') : '—'
+    const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : '—'
 
     const accentBg = isIPD ? '#dcfce7' : '#e0f2fe'
     const accentBorder = isIPD ? '#bbf7d0' : '#bae6fd'
     const accentText = isIPD ? '#14532d' : '#0c4a6e'
     const titleColor = isIPD ? '#15803d' : '#0284c7'
-    const counterType = isIPD ? 'IPD admission' : 'OPD'
-    const hindiCounter = isIPD ? 'आईपीडी' : 'ओपीडी'
 
     // Prescription Data
     const rx = booking.prescription || booking.meta?.prescription || {}
@@ -120,74 +124,48 @@ export class PrintSlipHandler {
     const prescribedMeds = rx.medicines || []
     const orderedTests = rx.tests || []
 
-    const deptId = Number(booking.department_id || 1)
-    const deptMedicines = mockMedicines.filter((m) => m.department_id === deptId)
-    const defaultMedsList = deptMedicines.length ? deptMedicines : mockMedicines.slice(0, 14)
-
-    // Build 15 Medicine Rows HTML (Receptionist Template)
+    // Build ONLY Prescribed Medicines Rows HTML
     let medRowsHTML = ''
-    for (let idx = 0; idx < 15; idx++) {
-      const srNo = idx + 1
-      let name = ''
-      let dosage = ''
-      let frequency = ''
-      let duration = ''
-      let remarks = ''
-      let checked = false
+    if (prescribedMeds && prescribedMeds.length > 0) {
+      prescribedMeds.forEach((pm, idx) => {
+        const srNo = idx + 1
+        const name = pm.name || pm.medicine_name || ''
+        const dosage = pm.dosage || '—'
+        const frequency = pm.frequency || '—'
+        const duration = pm.duration || '—'
+        const remarks = pm.remarks || ''
 
-      if (prescribedMeds[idx]) {
-        const pm = prescribedMeds[idx]
-        name = pm.name || pm.medicine_name || ''
-        dosage = pm.dosage || '—'
-        frequency = pm.frequency || '—'
-        duration = pm.duration || '—'
-        remarks = pm.remarks || ''
-        checked = true
-      } else if (defaultMedsList[idx]) {
-        name = defaultMedsList[idx].name
-      } else if (srNo === 15) {
-        name = 'Other (Specify) _______________'
-      }
-
-      medRowsHTML += `<tr>
-        <td style="text-align:center; font-weight:600;">${srNo}</td>
-        <td>${name}</td>
-        <td>${dosage}</td>
-        <td>${frequency}</td>
-        <td>${duration}</td>
-        <td>${remarks}</td>
-        <td style="text-align:center;"><div class="chk">${checked ? '✓' : ''}</div></td>
-      </tr>`
+        medRowsHTML += `<tr>
+          <td style="text-align:center; font-weight:600;">${srNo}</td>
+          <td style="font-weight:700; color:#0369a1;">${name}</td>
+          <td>${dosage}</td>
+          <td>${frequency}</td>
+          <td>${duration}</td>
+          <td>${remarks}</td>
+          <td style="text-align:center;"><div class="chk">✓</div></td>
+        </tr>`
+      })
+    } else {
+      medRowsHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b; font-style:italic; padding:8px 4px;">No medicines prescribed on this slip</td></tr>`
     }
 
-    // Build 10 Test Rows HTML (Receptionist Template)
-    const deptTests = mockLabTests.filter((t) => t.department_id === deptId || !t.department_id)
-    const defaultTestsList = deptTests.length ? deptTests : mockLabTests.slice(0, 9)
-
+    // Build ONLY Ordered Lab Tests Rows HTML
     let testRowsHTML = ''
-    for (let idx = 0; idx < 10; idx++) {
-      const srNo = idx + 1
-      let name = ''
-      let remarks = ''
-      let checked = false
+    if (orderedTests && orderedTests.length > 0) {
+      orderedTests.forEach((pt, idx) => {
+        const srNo = idx + 1
+        const name = pt.name || pt.test_name || ''
+        const remarks = pt.remarks || ''
 
-      if (orderedTests[idx]) {
-        const pt = orderedTests[idx]
-        name = pt.name || pt.test_name || ''
-        remarks = pt.remarks || ''
-        checked = true
-      } else if (defaultTestsList[idx]) {
-        name = defaultTestsList[idx].name
-      } else if (srNo === 10) {
-        name = 'Other (Specify) _______________'
-      }
-
-      testRowsHTML += `<tr>
-        <td style="text-align:center; font-weight:600;">${srNo}</td>
-        <td>${name}</td>
-        <td>${remarks}</td>
-        <td style="text-align:center;"><div class="chk">${checked ? '✓' : ''}</div></td>
-      </tr>`
+        testRowsHTML += `<tr>
+          <td style="text-align:center; font-weight:600;">${srNo}</td>
+          <td style="font-weight:700; color:#0369a1;">${name}</td>
+          <td>${remarks}</td>
+          <td style="text-align:center;"><div class="chk">✓</div></td>
+        </tr>`
+      })
+    } else {
+      testRowsHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; font-style:italic; padding:8px 4px;">No lab tests requested on this slip</td></tr>`
     }
 
     return `<!DOCTYPE html>
@@ -196,7 +174,7 @@ export class PrintSlipHandler {
 <meta charset="UTF-8"/>
 <title>${docTitle} — ${booking.patient_name || 'Patient'}</title>
 <style>
-  @page { size: A5 landscape; margin: 4mm 5mm; }
+  @page { size: A4 portrait; margin: 4mm 6mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -207,19 +185,18 @@ export class PrintSlipHandler {
   }
   .slip {
     border: 1.5px solid ${isIPD ? '#16a34a' : '#0284c7'};
-    border-radius: 6px;
-    padding: 8px 10px;
+    border-radius: 8px;
+    padding: 10px 12px;
     background: #fff;
     margin: 0 auto;
-    max-width: 780px;
-    max-height: 140mm;
+    max-width: 800px;
     page-break-inside: avoid;
     break-inside: avoid;
   }
   /* Header */
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
   .brand { display: flex; align-items: center; gap: 10px; }
-  .logo-img { height: 46px; max-width: 170px; object-fit: contain; }
+  .logo-img { height: 48px; max-width: 180px; object-fit: contain; }
   .hospital-name { font-size: 19px; font-weight: 800; color: #0369a1; line-height: 1.1; }
   .doc-title { font-size: 13px; font-weight: 700; color: ${titleColor}; margin-top: 1px; }
   .gen-time { font-size: 10px; color: #64748b; font-weight:600; text-align: right; }
@@ -251,23 +228,23 @@ export class PrintSlipHandler {
   .vital-cell { height: 18px; font-size: 10px; font-weight: 700; color: #0f172a; display:flex; align-items:center; justify-content:center; border-right: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
   .vital-cell:last-child { border-right: none; }
   /* Doctor Notes */
-  .rx-box { border: 1px solid #cbd5e1; border-radius: 5px; padding: 6px 10px; margin-bottom: 6px; min-height: 110px; }
+  .rx-box { border: 1px solid #cbd5e1; border-radius: 5px; padding: 6px 10px; margin-bottom: 6px; min-height: 130px; }
   .rx-title { font-size: 9.5px; font-weight: 800; color: #0369a1; text-transform: uppercase; margin-bottom: 3px; }
-  .notes-text { font-size: 10px; color: #1e293b; font-weight: 600; line-height: 1.4; white-space: pre-wrap; }
-  .ruled-line { border-bottom: 1px solid #e2e8f0; margin-top: 14px; height: 1px; }
+  .notes-text { font-size: 10.5px; color: #1e293b; font-weight: 600; line-height: 1.4; white-space: pre-wrap; }
+  .ruled-line { border-bottom: 1px solid #e2e8f0; margin-top: 16px; height: 1px; }
   /* Tables */
   .tbl-wrap { border: 1px solid #0284c7; border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
-  .tbl-header { background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 800; padding: 3px 8px; display: flex; justify-content: space-between; border-bottom: 1px solid #0284c7; }
+  .tbl-header { background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 800; padding: 4px 8px; display: flex; justify-content: space-between; border-bottom: 1px solid #0284c7; }
   .tbl-sub { font-size: 8.5px; font-weight: 600; color: #0284c7; }
-  table.p-tbl { width: 100%; border-collapse: collapse; font-size: 9px; }
-  table.p-tbl th { background: #f8fafc; color: #0369a1; font-weight: 700; padding: 2px 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #e2e8f0; text-align: left; }
+  table.p-tbl { width: 100%; border-collapse: collapse; font-size: 9.5px; }
+  table.p-tbl th { background: #f8fafc; color: #0369a1; font-weight: 700; padding: 3px 6px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #e2e8f0; text-align: left; }
   table.p-tbl th:last-child { border-right: none; }
-  table.p-tbl td { padding: 2px 4px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #e2e8f0; color: #0f172a; height: 16px; overflow: hidden; white-space: nowrap; }
+  table.p-tbl td { padding: 3px 6px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #e2e8f0; color: #0f172a; height: 18px; overflow: hidden; white-space: nowrap; }
   table.p-tbl td:last-child { border-right: none; }
   .chk { display: inline-block; width: 11px; height: 11px; border: 1.2px solid #0369a1; border-radius: 2px; text-align: center; line-height: 9px; font-size: 8px; font-weight: 800; color: #0369a1; }
   /* Signature */
-  .sig-area { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px; padding-top: 2px; }
-  .sig-box { width: 180px; height: 36px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fafafa; display: flex; align-items: flex-end; padding: 2px 6px; }
+  .sig-area { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 6px; padding-top: 2px; }
+  .sig-box { width: 180px; height: 38px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fafafa; display: flex; align-items: flex-end; padding: 2px 6px; }
   .sig-title { font-size: 9px; font-weight: 700; color: #475569; }
   .notice { font-size: 8.5px; color: #0284c7; font-weight: 700; margin-top: 2px; line-height: 1.25; }
   .stamp { font-size: 9px; font-weight: 800; color: #94a3b8; border: 1px dashed #94a3b8; padding: 12px 18px; border-radius: 4px; text-align: center; }
@@ -307,7 +284,7 @@ export class PrintSlipHandler {
       <div class="field-row"><span class="field-name">Name:</span><span class="field-val">${booking.patient_name || '—'}</span></div>
       <div class="field-row"><span class="field-name">Age/Gender:</span><span class="field-val">${booking.age ? booking.age + ' Yrs' : '—'} / ${booking.gender || '—'}</span></div>
       <div class="field-row"><span class="field-name">Mobile:</span><span class="field-val">+91 ${booking.mobile || '—'}</span></div>
-      <div class="field-row"><span class="field-name">Address:</span><span class="field-val">${address || '—'}</span></div>
+      <div class="field-row"><span class="field-name">Address:</span><span class="field-val">${fullAddress}</span></div>
     </div>
     <div class="detail-box">
       <div class="box-header">VISIT &amp; CLINICAL DETAILS</div>
@@ -337,15 +314,15 @@ export class PrintSlipHandler {
 
   <!-- Doctor Notes -->
   <div class="rx-box">
-    <div class="rx-title">DOCTOR'S NOTES</div>
-    ${rxNotes ? `<div class="notes-text">${rxNotes}</div>` : `<div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div>`}
+    <div class="rx-title">DOCTOR'S NOTES / CLINICAL DIAGNOSIS</div>
+    ${rxNotes ? `<div class="notes-text">${rxNotes}</div>` : `<div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div><div class="ruled-line"></div>`}
   </div>
 
-  <!-- Prescription Table (15 Rows) -->
+  <!-- Prescribed Medicines Table -->
   <div class="tbl-wrap">
     <div class="tbl-header">
-      <span>PRESCRIPTION</span>
-      <span class="tbl-sub">(Doctor can mark applicable medicines for the patient)</span>
+      <span>PRESCRIBED MEDICINES</span>
+      <span class="tbl-sub">(Only selected medicines)</span>
     </div>
     <table class="p-tbl">
       <thead>
@@ -365,11 +342,11 @@ export class PrintSlipHandler {
     </table>
   </div>
 
-  <!-- Tests Needed Table (10 Rows) -->
+  <!-- Ordered Lab Tests Table -->
   <div class="tbl-wrap">
     <div class="tbl-header">
-      <span>TESTS NEEDED</span>
-      <span class="tbl-sub">(Doctor can mark applicable tests for the patient)</span>
+      <span>ORDERED LAB TESTS</span>
+      <span class="tbl-sub">(Only selected tests)</span>
     </div>
     <table class="p-tbl">
       <thead>
@@ -390,7 +367,6 @@ export class PrintSlipHandler {
   <div class="sig-area">
     <div>
       <div class="sig-box"><div class="sig-title">Doctor's Signature</div></div>
-      <div class="notice">Please present this slip at the department ${counterType} counter.<br/>कृपया इस पर्ची को संबंधित विभाग के ${hindiCounter} काउंटर पर प्रस्तुत करें।</div>
     </div>
     <div class="stamp">HOSPITAL STAMP</div>
   </div>
@@ -408,4 +384,4 @@ export class PrintSlipHandler {
   }
 }
 
-export default PrintSlipHandler
+export default DoctorPrescriptionPrintHandler

@@ -488,3 +488,72 @@ export const mockStatusDistribution = [
   { name: 'Completed', value: 5, color: '#58a6ff' },
   { name: 'Cancelled', value: 10, color: '#f85149' },
 ]
+
+// ── Master Medicines Catalog (by Department) ──
+export const mockMedicines = [
+  // Obstetrics & Gynaecology (dept_id: 1)
+  { id: 1, department_id: 1, name: 'Tab. Paracetamol 500 mg', dosage_form: 'Tab', default_dosage: '1-0-1', default_frequency: 'Twice daily', default_duration: '5 days' },
+  { id: 2, department_id: 1, name: 'Tab. Ibuprofen 400 mg', dosage_form: 'Tab', default_dosage: '1-0-1', default_frequency: 'After meals', default_duration: '3 days' },
+  { id: 3, department_id: 1, name: 'Tab. Pantoprazole 40 mg', dosage_form: 'Tab', default_dosage: '1-0-0', default_frequency: 'Before breakfast', default_duration: '7 days' },
+  { id: 4, department_id: 1, name: 'Tab. Amoxicillin 500 mg', dosage_form: 'Tab', default_dosage: '1-1-1', default_frequency: 'Every 8 hours', default_duration: '5 days' },
+  { id: 5, department_id: 1, name: 'Tab. Metronidazole 400 mg', dosage_form: 'Tab', default_dosage: '1-0-1', default_frequency: 'Twice daily', default_duration: '5 days' },
+  { id: 6, department_id: 1, name: 'Tab. Doxycycline 100 mg', dosage_form: 'Tab', default_dosage: '1-0-1', default_frequency: 'Twice daily', default_duration: '7 days' },
+  { id: 7, department_id: 1, name: 'Tab. Calcium + Vitamin D3', dosage_form: 'Tab', default_dosage: '0-1-0', default_frequency: 'Once daily', default_duration: '30 days' },
+  { id: 8, department_id: 1, name: 'Tab. Ferrous Sulphate 200 mg', dosage_form: 'Tab', default_dosage: '1-0-0', default_frequency: 'Once daily', default_duration: '30 days' },
+  { id: 9, department_id: 1, name: 'Tab. Folic Acid 5 mg', dosage_form: 'Tab', default_dosage: '1-0-0', default_frequency: 'Once daily', default_duration: '30 days' },
+  { id: 10, department_id: 1, name: 'Tab. Norethisterone 5 mg', dosage_form: 'Tab', default_dosage: '1-0-1', default_frequency: 'Twice daily', default_duration: '5 days' },
+  { id: 11, department_id: 1, name: 'Tranexamic Acid 500 mg', dosage_form: 'Tab', default_dosage: '1-1-1', default_frequency: 'Thrice daily', default_duration: '3 days' },
+  { id: 12, department_id: 1, name: 'Cap. Probiotic', dosage_form: 'Cap', default_dosage: '1-0-0', default_frequency: 'Once daily', default_duration: '10 days' },
+  { id: 13, department_id: 1, name: 'Syrup. Antacid', dosage_form: 'Syrup', default_dosage: '2 tsp', default_frequency: 'Thrice daily after food', default_duration: '7 days' },
+  { id: 14, department_id: 1, name: 'Cream. Clotrimazole 1%', dosage_form: 'Cream', default_dosage: 'Local application', default_frequency: 'Twice daily', default_duration: '7 days' },
+
+  // Laparoscopic & General Surgery (dept_id: 2)
+  { id: 15, department_id: 2, name: 'Tab. Cefixime 200 mg', dosage_form: 'Tab', default_dosage: '1-0-1', default_frequency: 'Twice daily', default_duration: '5 days' },
+  { id: 16, department_id: 2, name: 'Tab. Ondansetron 4 mg', dosage_form: 'Tab', default_dosage: '1-0-1', default_frequency: 'As needed for nausea', default_duration: '3 days' },
+  { id: 17, department_id: 2, name: 'Tab. Aceclofenac + Paracetamol', dosage_form: 'Tab', default_dosage: '1-0-1', default_frequency: 'Twice daily after food', default_duration: '5 days' },
+  { id: 18, department_id: 2, name: 'Cap. Omeprazole 20 mg', dosage_form: 'Cap', default_dosage: '1-0-0', default_frequency: 'Before meals', default_duration: '10 days' },
+  { id: 19, department_id: 2, name: 'Tab. Chymoral Forte', dosage_form: 'Tab', default_dosage: '1-1-1', default_frequency: 'Before food', default_duration: '5 days' },
+
+  // Orthopaedics (dept_id: 3)
+  { id: 20, department_id: 3, name: 'Tab. Etoricoxib 90 mg', dosage_form: 'Tab', default_dosage: '1-0-0', default_frequency: 'Once daily after food', default_duration: '7 days' },
+  { id: 21, department_id: 3, name: 'Tab. Methylcobalamin 1500 mcg', dosage_form: 'Tab', default_dosage: '0-0-1', default_frequency: 'At bedtime', default_duration: '30 days' },
+  { id: 22, department_id: 3, name: 'Gel. Diclofenac Topical', dosage_form: 'Gel', default_dosage: 'Local application', default_frequency: '3 times daily', default_duration: '7 days' },
+  { id: 23, department_id: 3, name: 'Tab. Thiocolchicoside 4 mg', dosage_form: 'Tab', default_dosage: '1-0-1', default_frequency: 'Twice daily', default_duration: '5 days' },
+
+  // Urology (dept_id: 4)
+  { id: 24, department_id: 4, name: 'Tab. Tamsulosin 0.4 mg', dosage_form: 'Tab', default_dosage: '0-0-1', default_frequency: 'After dinner', default_duration: '30 days' },
+  { id: 25, department_id: 4, name: 'Tab. Nitrofurantoin 100 mg', dosage_form: 'Tab', default_dosage: '1-0-1', default_frequency: 'Twice daily with food', default_duration: '7 days' },
+  { id: 26, department_id: 4, name: 'Syrup. Disodium Hydrogen Citrate', dosage_form: 'Syrup', default_dosage: '2 tsp in water', default_frequency: 'Thrice daily', default_duration: '10 days' },
+
+  // Paediatric (dept_id: 7)
+  { id: 27, department_id: 7, name: 'Syp. Paracetamol 250 mg / 5ml', dosage_form: 'Syrup', default_dosage: '5 ml', default_frequency: 'Every 6 hours as needed', default_duration: '3 days' },
+  { id: 28, department_id: 7, name: 'Syp. Amoxicillin + Clavulanate', dosage_form: 'Syrup', default_dosage: '5 ml', default_frequency: 'Twice daily', default_duration: '5 days' },
+  { id: 29, department_id: 7, name: 'Drops. Vitamin D3', dosage_form: 'Drops', default_dosage: '1 ml', default_frequency: 'Once daily', default_duration: '30 days' },
+
+  // ENT (dept_id: 8)
+  { id: 30, department_id: 8, name: 'Tab. Levocetirizine 5 mg', dosage_form: 'Tab', default_dosage: '0-0-1', default_frequency: 'At bedtime', default_duration: '10 days' },
+  { id: 31, department_id: 8, name: 'Drops. Ciprofloxacin Ear Drops', dosage_form: 'Drops', default_dosage: '2 drops in ear', default_frequency: 'Thrice daily', default_duration: '7 days' },
+  { id: 32, department_id: 8, name: 'Spray. Oxymetazoline Nasal', dosage_form: 'Spray', default_dosage: '1 puff each nostril', default_frequency: 'Twice daily', default_duration: '5 days' },
+]
+
+// ── Master Lab Tests Catalog (by Department) ──
+export const mockLabTests = [
+  { id: 1, department_id: 1, name: 'CBC (Complete Blood Count)', category: 'Haematology' },
+  { id: 2, department_id: 1, name: 'Urine Routine & Microscopy', category: 'Pathology' },
+  { id: 3, department_id: 1, name: 'Urine Culture & Sensitivity', category: 'Microbiology' },
+  { id: 4, department_id: 1, name: 'Ultrasound (USG)', category: 'Radiology' },
+  { id: 5, department_id: 1, name: 'Pap Smear', category: 'Cytology' },
+  { id: 6, department_id: 1, name: 'Hormone Profile (e.g. TSH, LH, FSH, Prolactin)', category: 'Endocrinology' },
+  { id: 7, department_id: 1, name: 'Blood Sugar (Fasting / PP)', category: 'Biochemistry' },
+  { id: 8, department_id: 1, name: 'Lipid Profile', category: 'Biochemistry' },
+  { id: 9, department_id: 1, name: 'Liver Function Test (LFT)', category: 'Biochemistry' },
+  { id: 10, department_id: 2, name: 'Kidney Function Test (KFT / RFT)', category: 'Biochemistry' },
+  { id: 11, department_id: 2, name: 'Coagulation Profile (PT/INR)', category: 'Haematology' },
+  { id: 12, department_id: 2, name: 'CT Scan (Abdomen / Pelvis)', category: 'Radiology' },
+  { id: 13, department_id: 3, name: 'X-Ray (Joint / Bone)', category: 'Radiology' },
+  { id: 14, department_id: 3, name: 'Serum Calcium & Vitamin D', category: 'Biochemistry' },
+  { id: 15, department_id: 3, name: 'Uric Acid', category: 'Biochemistry' },
+  { id: 16, department_id: 4, name: 'KUB Ultrasound', category: 'Radiology' },
+  { id: 17, department_id: 4, name: 'PSA (Prostate Specific Antigen)', category: 'Biochemistry' },
+]
+

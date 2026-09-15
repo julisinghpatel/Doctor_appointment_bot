@@ -1,16 +1,17 @@
 import React from 'react'
-import { Phone, MessageSquare } from 'lucide-react'
+import { Phone, MessageSquare, CheckSquare, Square } from 'lucide-react'
 import { HospitalLogo } from './HospitalLogo'
 import { formatDate } from '../../utils/formatters'
+import { mockMedicines, mockLabTests } from '../../data/mockData'
 import styles from './PatientPrintSlip.module.css'
 
 function formatDateTime(d = new Date()) {
   const dateObj = d instanceof Date ? d : new Date(d)
   if (isNaN(dateObj.getTime())) return new Date().toLocaleString()
-  return dateObj.toLocaleString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
+  return dateObj.toLocaleString('en-IN', {
     day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
@@ -20,22 +21,57 @@ function formatDateTime(d = new Date()) {
 function SingleSlipCard({ booking }) {
   if (!booking) return null
 
-  const isIPD = booking.type === 'HOSPITALIZATION' || booking.service_name?.toLowerCase().includes('ipd') || booking.service_name?.toLowerCase().includes('hospitalization')
+  const isIPD =
+    booking.type === 'HOSPITALIZATION' ||
+    booking.service_name?.toLowerCase().includes('ipd') ||
+    booking.service_name?.toLowerCase().includes('hospitalization')
+
   const docTitle = isIPD ? 'IPD Admission Ticket' : 'OPD Consultation Slip'
   const isOldPatient = Boolean(booking.isOld || booking.is_old)
   const patientStatusLabel = isOldPatient ? ' (Old Patient पुराना मरीज)' : ' (नया मरीज)'
+
+  // Extract prescription data if available
+  const rx = booking.prescription || booking.meta?.prescription || {}
+  const rxVitals = rx.vitals || {}
+  const rxNotes = rx.doctor_notes || ''
+  const prescribedMeds = rx.medicines || []
+  const orderedTests = rx.tests || []
+
+  // Address Formatting
+  const addrLine = booking.address || booking.patient_address || booking.patientId?.address || booking.patient?.address || ''
+  const distLine = booking.district || booking.patient_district || booking.patientId?.district || booking.patient?.district || ''
+  const pinLine = booking.pinCode || booking.pincode || booking.pin_code || booking.patient_pin_code || booking.patientId?.pinCode || booking.patient?.pinCode || ''
+  const addressParts = [addrLine, distLine, pinLine].filter(Boolean)
+  const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : '—'
+
+  // Build Medicine Rows (ONLY SELECTED MEDICINES)
+  const medicineRows = prescribedMeds.map((pm, idx) => ({
+    srNo: idx + 1,
+    name: pm.name || pm.medicine_name || '',
+    dosage: pm.dosage || '—',
+    frequency: pm.frequency || '—',
+    duration: pm.duration || '—',
+    remarks: pm.remarks || '',
+    checked: true,
+  }))
+
+  // Build Test Rows (ONLY SELECTED LAB TESTS)
+  const testRows = orderedTests.map((pt, idx) => ({
+    srNo: idx + 1,
+    name: pt.name || pt.test_name || '',
+    remarks: pt.remarks || '',
+    checked: true,
+  }))
 
   return (
     <div className={`${styles.slipCard} ${isIPD ? styles.ipdSlipCard : ''}`}>
       {/* ── HEADER ── */}
       <div className={styles.header}>
         <div className={styles.brandGroup}>
-          <HospitalLogo height={46} />
+          <HospitalLogo height={44} />
           <div>
             <h1 className={styles.hospitalTitle}>KG Nanda Hospital</h1>
-            <div className={`${styles.docTitle} ${isIPD ? styles.ipdDocTitle : ''}`}>
-              {docTitle}
-            </div>
+            <div className={`${styles.docTitle} ${isIPD ? styles.ipdDocTitle : ''}`}>{docTitle}</div>
           </div>
         </div>
         <div className={styles.generatedTime}>
@@ -55,22 +91,22 @@ function SingleSlipCard({ booking }) {
           <span className={styles.statLabel}>TOKEN:</span>
           <span className={`${styles.statValue} ${isIPD ? styles.ipdStatValue : ''}`}>
             {booking.token_number
-              ? (String(booking.token_number).startsWith('T-')
+              ? String(booking.token_number).startsWith('T-')
                 ? booking.token_number
-                : `Token #${booking.token_number}`)
-              : (booking.time_slot || '—')}
-          </span>
-        </div>
-        <div className={styles.statBox}>
-          <span className={styles.statLabel}>BOOKING ID:</span>
-          <span className={`${styles.statValue} ${isIPD ? styles.ipdStatValue : ''}`}>
-            {booking.booking_id || '—'}
+                : `Token #${booking.token_number}`
+              : booking.time_slot || '—'}
           </span>
         </div>
         <div className={styles.statBox}>
           <span className={styles.statLabel}>SOURCE:</span>
           <span className={`${styles.statValue} ${isIPD ? styles.ipdStatValue : ''}`}>
             {booking.source_label || booking.created_by || booking.bookingSource || 'WhatsApp Bot'}
+          </span>
+        </div>
+        <div className={styles.statBox}>
+          <span className={styles.statLabel}>DOCTOR FEES:</span>
+          <span className={`${styles.statValue} ${isIPD ? styles.ipdStatValue : ''}`}>
+            ₹ {booking.consultation_fee || booking.doctor_fee || 500}
           </span>
         </div>
       </div>
@@ -98,11 +134,7 @@ function SingleSlipCard({ booking }) {
           </div>
           <div className={styles.fieldRow}>
             <span className={styles.fieldName}>Address:</span>
-            <span className={styles.fieldVal}>
-              {booking.address || '—'}
-              {booking.address && booking.district ? `, ${booking.district}` : (booking.district || '')}
-              {booking.pinCode ? ` — ${booking.pinCode}` : ''}
-            </span>
+            <span className={styles.fieldVal}>{fullAddress}</span>
           </div>
         </div>
 
@@ -122,20 +154,14 @@ function SingleSlipCard({ booking }) {
           <div className={styles.fieldRow}>
             <span className={styles.fieldName}>Dept / Doctor:</span>
             <span className={styles.fieldVal}>
-              {booking.doctor_name || 'General Doctor'}
+              {booking.doctor_name || 'Dr. Anand Prakash Tiwari'}
               {booking.doctor_specialization ? ` — ${booking.doctor_specialization}` : ''}
-            </span>
-          </div>
-          <div className={styles.fieldRow}>
-            <span className={styles.fieldName}>Booking Status:</span>
-            <span className={styles.fieldVal} style={{ fontWeight: 700, textTransform: 'capitalize' }}>
-              {booking.status || 'Confirmed'}
             </span>
           </div>
           <div className={styles.fieldRow}>
             <span className={styles.fieldName}>Chief Complaint:</span>
             <span className={styles.fieldVal}>
-              {booking.problemDescription || booking.problem_description || 'Routine Checkup / Consultation'}
+              {booking.problemDescription || booking.problem_description || 'Routine Consultation / Checkup'}
             </span>
           </div>
         </div>
@@ -143,35 +169,108 @@ function SingleSlipCard({ booking }) {
 
       {/* ── VITALS SECTION ── */}
       <div className={styles.vitalsContainer}>
-        <div className={styles.vitalsTitle}>VITALS SECTION (For Clinical Use)</div>
+        <div className={styles.vitalsTitle}>VITALS SECTION (FOR CLINICAL USE)</div>
         <div className={styles.vitalsGrid}>
           <div className={styles.vitalHeaderCol}>BP (mmHg)</div>
           <div className={styles.vitalHeaderCol}>Pulse (bpm)</div>
           <div className={styles.vitalHeaderCol}>Temp (°F)</div>
           <div className={styles.vitalHeaderCol}>Weight (kg)</div>
           <div className={styles.vitalHeaderCol}>SpO2 (%)</div>
-          <div className={styles.vitalCell} />
-          <div className={styles.vitalCell} />
-          <div className={styles.vitalCell} />
-          <div className={styles.vitalCell} />
-          <div className={styles.vitalCell} />
+
+          <div className={styles.vitalCell}>{rxVitals.bp || ''}</div>
+          <div className={styles.vitalCell}>{rxVitals.pulse || ''}</div>
+          <div className={styles.vitalCell}>{rxVitals.temp || ''}</div>
+          <div className={styles.vitalCell}>{rxVitals.weight || ''}</div>
+          <div className={styles.vitalCell}>{rxVitals.spo2 || ''}</div>
         </div>
       </div>
 
-      {/* ── PRESCRIPTION & NOTES ── */}
+      {/* ── DOCTOR'S NOTES ── */}
       <div className={styles.prescriptionBox}>
-        <div className={styles.prescriptionTitle}>DOCTOR'S NOTES & PRESCRIPTION</div>
-        <div className={styles.ruledLines}>
-          <div className={styles.line} />
-          <div className={styles.line} />
-          <div className={styles.line} />
+        <div className={styles.prescriptionTitle}>DOCTOR'S NOTES</div>
+        {rxNotes ? (
+          <div className={styles.printedNotesText}>{rxNotes}</div>
+        ) : (
+          <div className={styles.ruledLines}>
+            <div className={styles.line} />
+            <div className={styles.line} />
+            <div className={styles.line} />
+          </div>
+        )}
+      </div>
+
+      {/* ── PRESCRIPTION TABLE (15 ROWS) ── */}
+      <div className={styles.tableContainer}>
+        <div className={styles.tableHeaderBar}>
+          <span>PRESCRIPTION</span>
+          <span className={styles.tableHeaderSub}>(Doctor can mark applicable medicines for the patient)</span>
         </div>
+        <table className={styles.printTable}>
+          <thead>
+            <tr>
+              <th style={{ width: '38px', textAlign: 'center' }}>Sr. No.</th>
+              <th style={{ textAlign: 'left' }}>Medicine Name</th>
+              <th style={{ width: '90px' }}>Dosage</th>
+              <th style={{ width: '100px' }}>Frequency</th>
+              <th style={{ width: '80px' }}>Duration</th>
+              <th style={{ width: '120px' }}>Remarks</th>
+              <th style={{ width: '38px', textAlign: 'center' }}>Mark</th>
+            </tr>
+          </thead>
+          <tbody>
+            {medicineRows.map((row) => (
+              <tr key={row.srNo}>
+                <td style={{ textAlign: 'center', fontWeight: 600 }}>{row.srNo}</td>
+                <td>{row.name}</td>
+                <td>{row.dosage}</td>
+                <td>{row.frequency}</td>
+                <td>{row.duration}</td>
+                <td>{row.remarks}</td>
+                <td style={{ textAlign: 'center' }}>
+                  <div className={styles.checkboxOutline}>{row.checked ? '✓' : ''}</div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── TESTS NEEDED TABLE (10 ROWS) ── */}
+      <div className={styles.tableContainer} style={{ marginTop: '8px' }}>
+        <div className={styles.tableHeaderBar}>
+          <span>TESTS NEEDED</span>
+          <span className={styles.tableHeaderSub}>(Doctor can mark applicable tests for the patient)</span>
+        </div>
+        <table className={styles.printTable}>
+          <thead>
+            <tr>
+              <th style={{ width: '38px', textAlign: 'center' }}>Sr. No.</th>
+              <th style={{ textAlign: 'left' }}>Test Name</th>
+              <th style={{ width: '250px' }}>Remarks</th>
+              <th style={{ width: '38px', textAlign: 'center' }}>Mark</th>
+            </tr>
+          </thead>
+          <tbody>
+            {testRows.map((row) => (
+              <tr key={row.srNo}>
+                <td style={{ textAlign: 'center', fontWeight: 600 }}>{row.srNo}</td>
+                <td>{row.name}</td>
+                <td>{row.remarks}</td>
+                <td style={{ textAlign: 'center' }}>
+                  <div className={styles.checkboxOutline}>{row.checked ? '✓' : ''}</div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* ── SIGNATURE & STAMP ── */}
       <div className={styles.sigArea}>
         <div className={styles.sigLeft}>
-          <div className={styles.sigTitle}>Doctor's Signature</div>
+          <div className={styles.sigBox}>
+            <div className={styles.sigTitle}>Doctor's Signature</div>
+          </div>
           <div className={styles.noticeText}>
             Please present this slip at the department {isIPD ? 'IPD admission' : 'OPD'} counter.
             <br />
@@ -181,19 +280,31 @@ function SingleSlipCard({ booking }) {
         <div className={styles.stampRight}>HOSPITAL STAMP</div>
       </div>
 
-      {/* ── FOOTER CONTACTS (WhatsApp & Call Helpline - Slogan removed) ── */}
+      {/* ── FOOTER CONTACTS ── */}
       <div className={styles.footerBar}>
         <div className={styles.contactItem}>
           <div className={styles.iconCircle}>
-            <MessageSquare size={12} />
+            <MessageSquare size={11} />
           </div>
-          <span>WhatsApp Chatbot <strong>8840376333</strong></span>
+          <span>
+            WhatsApp Chatbot <strong>+91 8853991899</strong>
+          </span>
         </div>
         <div className={styles.contactItem}>
           <div className={`${styles.iconCircle} ${styles.phoneIconCircle}`}>
-            <Phone size={12} />
+            <Phone size={11} />
           </div>
-          <span>Call Helpline Number <strong>9838850287</strong></span>
+          <span>
+            Call Helpline Number <strong>+91 9838850287</strong>
+          </span>
+        </div>
+        <div className={styles.contactItem}>
+          <div className={`${styles.iconCircle} ${styles.phoneIconCircle}`}>
+            <Phone size={11} />
+          </div>
+          <span>
+            Helpdesk <strong>+91 8840376333</strong>
+          </span>
         </div>
       </div>
     </div>
@@ -201,21 +312,15 @@ function SingleSlipCard({ booking }) {
 }
 
 /**
- * One slip per booking, stacked — a single booking fills roughly the top
- * half of an A4 page. No duplicate copies, no cut line.
+ * Full A4 Page Patient OPD Consultation Print Slip
  */
-export function PatientPrintSlip({ bookings = [], topBooking, bottomBooking }) {
-  // Back-compat: handler used to pass top/bottom copies
-  const list = bookings.length
-    ? bookings.slice(0, 2)
-    : [topBooking, bottomBooking].filter(Boolean).slice(0, 1)
+export function PatientPrintSlip({ bookings = [], topBooking }) {
+  const targetBooking = bookings[0] || topBooking || null
 
   return (
     <div id="printable-slip-area" className={styles.printPageContainer}>
       <div className={styles.pageSheet}>
-        {list.map((booking, i) => (
-          <SingleSlipCard key={booking?.booking_id || booking?.id || i} booking={booking} />
-        ))}
+        {targetBooking && <SingleSlipCard booking={targetBooking} />}
       </div>
     </div>
   )

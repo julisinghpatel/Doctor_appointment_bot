@@ -97,3 +97,21 @@ export const DEFAULT_TIME_SLOTS = [
   '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM',
   '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM',
 ]
+
+/**
+ * Staff Role Constants & Navigation Helpers
+ */
+export const ALL_STAFF = ['superadmin', 'admin', 'doctor', 'receptionist', 'pharmacy']
+
+export const ROLE_HOME = {
+  superadmin: '/',
+  admin: '/',
+  doctor: '/my-patients',
+  receptionist: '/appointments',
+  pharmacy: '/medicine-orders',
+}
+
+export function homeForRole(role) {
+  return ROLE_HOME[role] || '/'
+}
+
