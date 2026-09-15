@@ -1,4 +1,5 @@
 import sql from '../../config/database.js'
+import { toObjectIdString } from '../../utils/registration.js'
 
 function mapMedicineOrder(row) {
   if (!row) return null
@@ -70,10 +71,11 @@ class MedicineOrderRepository {
   }
 
   async findById(id) {
-    if (!id) return null
+    const coercedId = toObjectIdString(id)
+    if (!coercedId) return null
     const [row] = await sql`
       ${SELECT_ORDER_WITH_PATIENT}
-      WHERE mo.id = ${id}
+      WHERE mo.id = ${coercedId}
     `
     return mapMedicineOrder(row)
   }

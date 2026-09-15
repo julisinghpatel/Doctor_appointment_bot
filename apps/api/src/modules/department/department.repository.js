@@ -1,4 +1,5 @@
 import sql from '../../config/database.js'
+import { toObjectIdString } from '../../utils/registration.js'
 
 function mapDepartment(row) {
   if (!row) return null
@@ -55,9 +56,11 @@ class DepartmentRepository {
   }
 
   async findById(id) {
+    const coercedId = toObjectIdString(id)
+    if (!coercedId) return null
     const [row] = await sql`
       SELECT * FROM departments
-      WHERE id = ${id}
+      WHERE id = ${coercedId}
     `
     return mapDepartment(row)
   }

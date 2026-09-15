@@ -1,4 +1,5 @@
 import sql from '../../config/database.js'
+import { toObjectIdString } from '../../utils/registration.js'
 
 function mapService(row) {
   if (!row) return null
@@ -43,10 +44,11 @@ class ServiceRepository {
   }
 
   async findById(id) {
-    if (!id) return null
+    const coercedId = toObjectIdString(id)
+    if (!coercedId) return null
     const [row] = await sql`
       SELECT * FROM services
-      WHERE id = ${id}
+      WHERE id = ${coercedId}
     `
     return mapService(row)
   }

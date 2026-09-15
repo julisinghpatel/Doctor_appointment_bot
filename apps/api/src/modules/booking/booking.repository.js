@@ -1,5 +1,6 @@
 import sql from '../../config/database.js'
 import patientRepo from '../patient/patient.repository.js'
+import { toObjectIdString } from '../../utils/registration.js'
 
 function mapBooking(row) {
   if (!row) return null
@@ -169,19 +170,22 @@ class BookingRepository {
   }
 
   async findById(id) {
-    if (!id) return null
+    const coercedId = toObjectIdString(id)
+    if (!coercedId) return null
     const [row] = await sql`
       ${SELECT_BOOKING_WITH_JOINS}
-      WHERE b.id = ${id}
+      WHERE b.id = ${coercedId}
     `
     return mapBooking(row)
   }
 
   async findDistinctPatientIdsByDoctor(doctorId) {
+    const coercedDoctorId = toObjectIdString(doctorId)
+    if (!coercedDoctorId) return []
     const rows = await sql`
       SELECT DISTINCT patient_id
       FROM bookings
-      WHERE doctor_id = ${doctorId} AND status != 'cancelled'
+      WHERE doctor_id = ${coercedDoctorId} AND status != 'cancelled'
     `
     return rows.map(r => r.patient_id)
   }
@@ -487,12 +491,13 @@ class BookingRepository {
   }
 
   async getLatestInfertilityVisitCount(patientId) {
-    if (!patientId) return 0
+    const coercedPatientId = toObjectIdString(patientId)
+    if (!coercedPatientId) return 0
     try {
       const [row] = await sql`
         SELECT COUNT(*)::int AS count
         FROM bookings
-        WHERE patient_id = ${patientId}
+        WHERE patient_id = ${coercedPatientId}
           AND status != 'cancelled'
           AND (
             meta->>'category' = 'Infertility'

@@ -180,10 +180,11 @@ class PatientRepository {
   }
 
   async findById(id) {
-    if (!id) return null
+    const coercedId = toObjectIdString(id)
+    if (!coercedId) return null
     const [row] = await sql`
       SELECT * FROM patients
-      WHERE id = ${id}
+      WHERE id = ${coercedId}
     `
     return mapPatient(row)
   }

@@ -1,4 +1,5 @@
 import sql from '../../config/database.js'
+import { toObjectIdString } from '../../utils/registration.js'
 
 function prepareDoctorData(data) {
   const payload = { ...data }
@@ -53,12 +54,13 @@ function mapDoctor(row) {
 class DoctorRepository {
   async findAll(filter = {}) {
     let rows
-    if (filter.departmentId) {
+    const deptId = toObjectIdString(filter.departmentId)
+    if (deptId) {
       rows = await sql`
         SELECT d.*, dep.name as department_name
         FROM doctors d
         LEFT JOIN departments dep ON d.department_id = dep.id
-        WHERE d.department_id = ${filter.departmentId}
+        WHERE d.department_id = ${deptId}
         ORDER BY d.name ASC
       `
     } else {
@@ -84,13 +86,15 @@ class DoctorRepository {
   }
 
   async findByDepartment(departmentId, { activeOnly = true } = {}) {
+    const deptId = toObjectIdString(departmentId)
+    if (!deptId) return []
     let rows
     if (activeOnly) {
       rows = await sql`
         SELECT d.*, dep.name as department_name
         FROM doctors d
         LEFT JOIN departments dep ON d.department_id = dep.id
-        WHERE d.department_id = ${departmentId} AND d.is_active = true
+        WHERE d.department_id = ${deptId} AND d.is_active = true
         ORDER BY d.name ASC
       `
     } else {
@@ -98,7 +102,7 @@ class DoctorRepository {
         SELECT d.*, dep.name as department_name
         FROM doctors d
         LEFT JOIN departments dep ON d.department_id = dep.id
-        WHERE d.department_id = ${departmentId}
+        WHERE d.department_id = ${deptId}
         ORDER BY d.name ASC
       `
     }
@@ -106,12 +110,13 @@ class DoctorRepository {
   }
 
   async findById(id) {
-    if (!id) return null
+    const coercedId = toObjectIdString(id)
+    if (!coercedId) return null
     const [row] = await sql`
       SELECT d.*, dep.name as department_name
       FROM doctors d
       LEFT JOIN departments dep ON d.department_id = dep.id
-      WHERE d.id = ${id}
+      WHERE d.id = ${coercedId}
     `
     return mapDoctor(row)
   }
