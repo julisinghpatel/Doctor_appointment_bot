@@ -47,6 +47,9 @@ export class PrintSlipHandler {
       booking.pinCode ? ` — ${booking.pinCode}` : '',
     ].join('')
 
+    const rawFee = booking.consultation_fee || booking.doctor_fee || booking.consultationFee || booking.doctorId?.consultationFee || booking.fee || 500
+    const feeDisplay = `₹${rawFee}`
+
     const accentBg = isIPD ? '#e8f5e9' : '#e3f2fd'
     const accentBorder = isIPD ? '#c8e6c9' : '#bbdefb'
     const accentText = isIPD ? '#1b5e20' : '#0d47a1'
@@ -141,7 +144,7 @@ export class PrintSlipHandler {
 ${this._slipBlock(booking, {
   docTitle, patientStatusLabel, tokenDisplay, generatedTime,
   appointmentDate, source, address, accentBg, accentBorder,
-  accentText, counterType, hindiCounter, isIPD,
+  accentText, counterType, hindiCounter, isIPD, feeDisplay,
 })}
 
 </body>
@@ -155,15 +158,6 @@ ${this._slipBlock(booking, {
     // Phone SVG icon (inline)
     const phoneSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`
 
-    // Logo image (uses public/image/image.png)
-    /* SVG Logo fallback commented out:
-    const logoSvg = `<svg width="52" height="42" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M100 240C90 190 120 120 170 40C120 80 80 130 90 240Z" fill="#009BDD"/>
-      <path d="M130 220C120 180 150 130 180 80C140 120 110 160 120 220Z" fill="#009BDD"/>
-      <path d="M210 32C240 32 270 50 270 90C290 80 320 80 340 105C360 130 350 160 340 180C360 205 350 240 320 255C290 270 245 275 200 290C220 270 250 250 250 215C250 170 200 180 200 135C200 100 240 110 240 90C240 75 220 50 200 40C202 36 205 32 210 32Z" fill="#7BC142"/>
-      <g transform="translate(70,200) scale(0.6)"><rect x="58" y="20" width="4" height="110" fill="#F37023" rx="2"/><circle cx="60" cy="18" r="6" fill="#F37023"/><path d="M60 40C40 25 15 35 10 45C30 45 45 42 60 55C75 42 90 45 110 45C105 35 80 25 60 40Z" fill="#009BDD"/><path d="M60 50 C40 60 40 75 60 85 C80 95 80 110 60 120" stroke="#7BC142" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M60 50 C80 60 80 75 60 85 C40 95 40 110 60 120" stroke="#7BC142" stroke-width="6" fill="none" stroke-linecap="round"/></g>
-    </svg>`
-    */
     const logoImg = `<img src="${typeof window !== 'undefined' ? window.location.origin : ''}/image/image.png" style="height:48px; max-width:140px; object-fit:contain; vertical-align:middle;" alt="KG Nanda Hospital Logo" onerror="this.style.display='none'"/>`
 
     return `<div class="slip">
@@ -183,7 +177,7 @@ ${this._slipBlock(booking, {
   <div class="stats-bar">
     <div><div class="stat-label">UHID:</div><div class="stat-value">${b.uhid || 'KGN-PENDING'}</div></div>
     <div><div class="stat-label">TOKEN:</div><div class="stat-value">${o.tokenDisplay}</div></div>
-    <div><div class="stat-label">BOOKING ID:</div><div class="stat-value">${b.booking_id || '—'}</div></div>
+    <div><div class="stat-label">DOCTOR FEE:</div><div class="stat-value">${o.feeDisplay}</div></div>
     <div><div class="stat-label">SOURCE:</div><div class="stat-value">${o.source}</div></div>
   </div>
 
@@ -201,6 +195,7 @@ ${this._slipBlock(booking, {
       <div class="field-row"><span class="field-name">Visit Type:</span><span class="field-val">${o.isIPD ? 'Hospitalization (IPD Admission)' : 'OPD Appointment'}</span></div>
       <div class="field-row"><span class="field-name">${o.isIPD ? 'Admission Date:' : 'Appt Date:'}</span><span class="field-val">${o.appointmentDate}</span></div>
       <div class="field-row"><span class="field-name">Dept / Doctor:</span><span class="field-val">${b.doctor_name || 'General Doctor'}${b.doctor_specialization ? ' — ' + b.doctor_specialization : ''}</span></div>
+      <div class="field-row"><span class="field-name">Doctor Fee:</span><span class="field-val" style="font-weight:600">${o.feeDisplay}</span></div>
       <div class="field-row"><span class="field-name">Booking Status:</span><span class="field-val" style="font-weight:700;text-transform:capitalize">${b.status || 'Confirmed'}</span></div>
       <div class="field-row"><span class="field-name">Chief Complaint:</span><span class="field-val">${b.problemDescription || b.problem_description || 'Routine Checkup / Consultation'}</span></div>
     </div>

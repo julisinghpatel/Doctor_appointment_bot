@@ -4,14 +4,18 @@ import patientRepo from '../patient/patient.repository.js'
 function mapBooking(row) {
   if (!row) return null
   const meta = row.meta || {}
+  const doctorFee = row.doctor_fee !== undefined && row.doctor_fee !== null ? Number(row.doctor_fee) : 0
   return {
     id: row.id,
     _id: row.id,
     bookingId: row.booking_id,
+    booking_id: row.booking_id,
     preferredDate: row.appointment_date,
     appointmentDate: row.appointment_date,
+    date: row.appointment_date,
     status: row.status,
     tokenNumber: row.token_number,
+    token_number: row.token_number,
     tokenIssued: Boolean(meta.tokenIssued),
     notes: row.problem_description || '',
     problemDescription: row.problem_description || '',
@@ -31,13 +35,21 @@ function mapBooking(row) {
     address: row.patient_address || '',
     district: row.patient_district || '',
     pinCode: row.patient_pin_code || '',
+    patient_name: row.patient_name || '',
+    patient_phone: row.patient_phone || '',
+    mobile: row.patient_phone || '',
+    doctor_name: row.doctor_name || '',
+    doctor_specialization: row.department_name || '',
+    consultation_fee: doctorFee,
+    doctor_fee: doctorFee,
+    consultationFee: doctorFee,
     doctorId: row.doctor_id ? {
       id: row.doctor_id,
       _id: row.doctor_id,
       name: row.doctor_name || '',
       department: row.department_name || '',
       role: 'doctor',
-      consultationFee: Number(row.doctor_fee || 0),
+      consultationFee: doctorFee,
     } : null,
     patientId: row.patient_id ? {
       id: row.patient_id,

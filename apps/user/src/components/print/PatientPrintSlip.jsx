@@ -24,6 +24,8 @@ function SingleSlipCard({ booking }) {
   const docTitle = isIPD ? 'IPD Admission Ticket' : 'OPD Consultation Slip'
   const isOldPatient = Boolean(booking.isOld || booking.is_old)
   const patientStatusLabel = isOldPatient ? ' (Old Patient पुराना मरीज)' : ' (नया मरीज)'
+  const rawFee = booking.consultation_fee || booking.doctor_fee || booking.consultationFee || booking.doctorId?.consultationFee || booking.fee || 500
+  const feeDisplay = `₹${rawFee}`
 
   return (
     <div className={`${styles.slipCard} ${isIPD ? styles.ipdSlipCard : ''}`}>
@@ -62,9 +64,9 @@ function SingleSlipCard({ booking }) {
           </span>
         </div>
         <div className={styles.statBox}>
-          <span className={styles.statLabel}>BOOKING ID:</span>
+          <span className={styles.statLabel}>DOCTOR FEE:</span>
           <span className={`${styles.statValue} ${isIPD ? styles.ipdStatValue : ''}`}>
-            {booking.booking_id || '—'}
+            {feeDisplay}
           </span>
         </div>
         <div className={styles.statBox}>
@@ -124,6 +126,12 @@ function SingleSlipCard({ booking }) {
             <span className={styles.fieldVal}>
               {booking.doctor_name || 'General Doctor'}
               {booking.doctor_specialization ? ` — ${booking.doctor_specialization}` : ''}
+            </span>
+          </div>
+          <div className={styles.fieldRow}>
+            <span className={styles.fieldName}>Doctor Fee:</span>
+            <span className={styles.fieldVal} style={{ fontWeight: 600 }}>
+              {feeDisplay}
             </span>
           </div>
           <div className={styles.fieldRow}>

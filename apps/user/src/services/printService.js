@@ -1,6 +1,7 @@
 import api, { isMockMode } from './api'
 import { bookingService } from './bookingService'
 import { patientService } from './patientService'
+import { doctorService } from './doctorService'
 import { mockPatients, mockDoctors } from '../data/mockData'
 
 const digitsOnly = (v) => String(v || '').replace(/\D/g, '')
@@ -19,12 +20,33 @@ export function sourceLabel(booking = {}) {
   return null
 }
 
-function mergeSlipFields(row, patient, doctorSpec) {
+function resolveFee(row, doctorFee, dObj) {
+  const feeCandidates = [
+    row?.consultation_fee,
+    row?.doctor_fee,
+    row?.consultationFee,
+    dObj?.consultationFee,
+    dObj?.consultation_fee,
+    doctorFee,
+    500,
+  ]
+  for (const f of feeCandidates) {
+    if (f !== undefined && f !== null && f !== '' && Number(f) > 0) {
+      return Number(f)
+    }
+  }
+  return 500
+}
+
+function mergeSlipFields(row, patient, doctorSpec, doctorFee) {
   // Channel defaults to whatsapp unless the row says otherwise; a staff
   // code without a channel means the offline front desk.
   const source = row.booking_source || row.bookingSource || (row.created_by ? 'offline' : 'whatsapp')
   const pObj = (row.patientId && typeof row.patientId === 'object') ? row.patientId : {}
+  const dObj = (row.doctorId && typeof row.doctorId === 'object') ? row.doctorId : {}
   const rx = row.prescription || row.meta?.prescription || null
+  const fee = resolveFee(row, doctorFee, dObj)
+
   return {
     ...row,
     booking_source: source,
@@ -37,9 +59,10 @@ function mergeSlipFields(row, patient, doctorSpec) {
     pinCode: row.pinCode || pObj.pinCode || patient?.pinCode || patient?.pin_code || '',
     uhid: row.uhid || pObj.uhid || patient?.uhid || 'KGN-PENDING',
     isOld: Boolean(row.isOld || row.is_old || pObj.isOld || patient?.isOld || patient?.is_old),
-    doctor_name: row.doctor_name || row.doctorId?.name || '',
-    doctor_specialization: row.doctor_specialization || doctorSpec || '',
-    consultation_fee: row.consultation_fee || row.doctor_fee || 500,
+    doctor_name: row.doctor_name || dObj.name || '',
+    doctor_specialization: row.doctor_specialization || dObj.department || doctorSpec || '',
+    consultation_fee: fee,
+    doctor_fee: fee,
     prescription: rx,
     source_label: SOURCE_LABELS[source] || '—',
   }
@@ -58,8 +81,10 @@ export const printService = {
     if (isMockMode()) {
       const key = digitsOnly(booking.mobile).slice(-10)
       const patient = mockPatients.find((p) => digitsOnly(p.mobile).slice(-10) === key) || null
-      const doctor = mockDoctors.find((d) => d.id === Number(booking.doctor_id)) || null
-      return mergeSlipFields(booking, patient, doctor?.specialization)
+      const doctorId = booking.doctor_id || booking.doctorId?.id || booking.doctorId
+      const doctor = mockDoctors.find((d) => Number(d.id) === Number(doctorId)) || mockDoctors.find((d) => d.name === booking.doctor_name) || null
+      const docFee = doctor?.consultation_fee || doctor?.consultationFee || booking.consultation_fee || booking.doctor_fee
+      return mergeSlipFields(booking, patient, doctor?.specialization, docFee)
     }
 
     // Real mode: booking detail (populated doctor + patient age/gender/address) …
@@ -74,7 +99,19 @@ export const printService = {
         patient = null
       }
     }
-    const merged = mergeSlipFields(detail, patient, detail.doctor_specialization)
+
+    const targetDoctorId = detail.doctor_id || detail.doctorId?.id || (typeof detail.doctorId === 'number' ? detail.doctorId : null)
+    let doctor = null
+    if (targetDoctorId) {
+      try {
+        doctor = await doctorService.getDoctor(targetDoctorId)
+      } catch {
+        doctor = null
+      }
+    }
+
+    const docFee = detail.consultation_fee || detail.doctor_fee || detail.doctorId?.consultationFee || doctor?.consultation_fee || doctor?.consultationFee
+    const merged = mergeSlipFields(detail, patient, detail.doctor_specialization || detail.doctorId?.department || doctor?.specialization, docFee)
     // patient detail nests bookings; keep the slip flat
     delete merged.bookings
     return merged

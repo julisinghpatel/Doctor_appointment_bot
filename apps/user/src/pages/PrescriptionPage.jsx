@@ -225,7 +225,7 @@ export default function PrescriptionPage() {
 
       // 3. Print Doctor OPD Prescription Slip
       await DoctorPrescriptionPrintHandler.printPrescription(slipData)
-      toast.success('Doctor OPD Prescription printed successfully!')
+      toast.success('Doctor OPD Prescription printed successfully!', { duration: 4000 })
     } catch (err) {
       console.error('Print failed', err)
       toast.error('Failed to generate prescription print slip')
