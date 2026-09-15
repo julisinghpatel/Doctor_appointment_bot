@@ -1,7 +1,7 @@
 -- migrate:up
 CREATE TABLE IF NOT EXISTS medicines (
     id            INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    department_id INT REFERENCES departments(id) ON DELETE SET NULL,
+    department_id BIGINT REFERENCES departments(id) ON DELETE SET NULL,
     name          TEXT NOT NULL,
     dosage_form   TEXT DEFAULT 'Tab',
     default_dosage TEXT DEFAULT '',
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS medicines (
 
 CREATE TABLE IF NOT EXISTS lab_tests (
     id            INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    department_id INT REFERENCES departments(id) ON DELETE SET NULL,
+    department_id BIGINT REFERENCES departments(id) ON DELETE SET NULL,
     name          TEXT NOT NULL,
     category      TEXT DEFAULT 'General',
     is_active     BOOLEAN NOT NULL DEFAULT true,

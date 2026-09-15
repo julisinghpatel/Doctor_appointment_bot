@@ -1,4 +1,5 @@
 import sql from '../../config/database.js'
+import { toObjectIdString } from '../../utils/registration.js'
 
 function mapPatient(row) {
   if (!row) return null
@@ -29,9 +30,10 @@ function buildIdentityKey(phone, name) {
 class PatientRepository {
   async findByPhone(phone) {
     if (!phone) return null
+    const phoneStr = typeof phone === 'object' ? (phone.phone || phone.mobile || String(phone)) : String(phone)
     const [row] = await sql`
       SELECT * FROM patients
-      WHERE phone = ${phone}
+      WHERE phone = ${phoneStr}
       LIMIT 1
     `
     return mapPatient(row)

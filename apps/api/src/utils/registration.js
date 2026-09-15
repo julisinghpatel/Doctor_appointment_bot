@@ -35,7 +35,7 @@ export function toObjectIdString(id) {
     if (/^[0-9a-fA-F]{24}$/.test(str)) return str
   }
   if (id && typeof id === 'object') {
-    const val = id._id !== undefined ? id._id : (id.id !== undefined ? id.id : null)
+    const val = id.id !== undefined ? id.id : (id._id !== undefined ? id._id : null)
     if (val !== null && val !== id) return toObjectIdString(val)
     const str = String(id).trim()
     if (/^\d+$/.test(str)) return parseInt(str, 10)
