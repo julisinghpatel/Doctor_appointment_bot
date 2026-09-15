@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import env from "./config/env.js";
-import { connectDB } from "./config/database.js";
+import sql, { connectDB } from "./config/database.js";
 import logger from "./utils/logger.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import routes from "./routes/index.js";
@@ -68,16 +68,34 @@ conversationService.setProvider(messagingProvider);
 app.use("/webhook/whatsapp", createWebhookRouter(messagingProvider));
 
 // ─── Health Check ───────────────────────────────────────
-app.get("/health", (_req, res) =>
-  res.json({ status: "ok", timestamp: new Date().toISOString() }),
-);
+app.get("/health", async (_req, res) => {
+  try {
+    await sql`SELECT 1`;
+    res.status(200).json({
+      status: "ok",
+      database: "connected",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    logger.error(`Health check failed: ${err.message}`);
+    res.status(503).json({
+      status: "unavailable",
+      database: "disconnected",
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
 
 // ─── Error Handler ──────────────────────────────────────
 app.use(errorHandler);
 
 // ─── Start ──────────────────────────────────────────────
 async function start() {
-  await connectDB();
+  const dbConnected = await connectDB();
+  if (!dbConnected) {
+    logger.warn("Starting server without an active database connection");
+  }
+
   app.listen(env.port, () => {
     logger.info(`DocBot API running on http://localhost:${env.port}`);
     logger.info("WhatsApp provider: Meta Cloud API");
@@ -87,5 +105,4 @@ async function start() {
 
 start().catch((err) => {
   logger.error("Failed to start:", err.message);
-  process.exit(1);
 });
