@@ -14,6 +14,9 @@ import Settings from './pages/Settings'
 import Login from './pages/Login'
 import { useAuth } from './hooks/useAuth'
 import './App.css'
+import Prescription from './pages/Invoices/Prescription/Prescription'
+import HospitalBill from './pages/Invoices/HospitalBill/HospitalBill'
+import DischargeSummary from './pages/Invoices/DischargeSummary/DischargeSummary'
 
 /**
  * Role home pages — where each role lands after login.
@@ -70,6 +73,38 @@ export default function App() {
         <Route index element={<RequireRole roles={['superadmin', 'admin']}><Dashboard /></RequireRole>} />
         <Route path="appointments" element={<RequireRole roles={['superadmin', 'admin', 'doctor', 'receptionist']}><Appointments /></RequireRole>} />
         <Route path="hospitalization" element={<RequireRole roles={['superadmin', 'admin', 'receptionist']}><Hospitalization /></RequireRole>} />
+        <Route
+          path="invoices"
+          element={<Navigate to="/invoices/prescriptions" replace />}
+        />
+
+        <Route
+          path="invoices/prescriptions"
+          element={
+            <RequireRole roles={['superadmin', 'admin', 'doctor', 'receptionist']}>
+              <Prescription />
+            </RequireRole>
+          }
+        />
+
+<Route
+  path="invoices/hospital-bills"
+  element={
+    <RequireRole roles={['superadmin', 'admin', 'receptionist']}>
+      <HospitalBill />
+    </RequireRole>
+  }
+/>
+
+<Route
+  path="invoices/discharge-summaries"
+  element={
+    <RequireRole roles={['superadmin', 'admin', 'receptionist']}>
+      <DischargeSummary />
+    </RequireRole>
+  }
+/>
+
         <Route path="medicine-orders" element={<RequireRole roles={['superadmin', 'admin', 'pharmacy', 'receptionist', 'doctor']}><MedicineOrders /></RequireRole>} />
         <Route path="doctors" element={<RequireRole roles={['superadmin', 'admin']}><Doctors /></RequireRole>} />
         <Route path="patients" element={<RequireRole roles={['superadmin', 'admin', 'receptionist', 'pharmacy']}><Patients /></RequireRole>} />
