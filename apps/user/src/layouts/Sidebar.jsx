@@ -10,6 +10,8 @@ import {
   UserPlus,
   ClipboardList,
   BarChart3,
+  ReceiptText,
+  ChevronDown,
   Settings,
   LogOut,
   MessageCircle,
@@ -29,6 +31,7 @@ const iconMap = {
   UserPlus,
   ClipboardList,
   BarChart3,
+  ReceiptText,
   Settings,
 }
 
@@ -45,11 +48,45 @@ const NAV_BY_ROLE = {
     { path: '/staff', label: 'Staff', icon: 'ClipboardList' },
     { path: '/reports', label: 'Reports', icon: 'BarChart3' },
     { path: '/settings', label: 'Settings', icon: 'Settings' },
+    {
+  path: '/invoices', label: 'Invoices', icon: 'ReceiptText',
+  children: [
+    {
+      path: '/invoices/prescriptions',
+      label: 'Prescription',
+    },
+    {
+      path: '/invoices/hospital-bills',
+      label: 'Hospital Bill',
+    },
+    {
+      path: '/invoices/discharge-summaries',
+      label: 'Discharge Summary',
+    },
+  ],
+},
   ],
   admin: [
     { path: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
     { path: '/appointments', label: 'Appointments (OPD)', icon: 'CalendarCheck' },
     { path: '/hospitalization', label: 'Hospitalization (IPD)', icon: 'Bed' },
+    //Invoices
+    { path: '/invoices', label: 'Invoices', icon: 'ReceiptText',
+  children: [
+    {
+      path: '/invoices/prescriptions',
+      label: 'Prescription',
+    },
+    {
+      path: '/invoices/hospital-bills',
+      label: 'Hospital Bill',
+    },
+    {
+      path: '/invoices/discharge-summaries',
+      label: 'Discharge Summary',
+    },
+  ],
+},
     { path: '/medicine-orders', label: 'Medicine Orders', icon: 'Pill' },
     { path: '/doctors', label: 'Doctors', icon: 'Stethoscope' },
     { path: '/patients', label: 'Patients', icon: 'Users' },
@@ -64,6 +101,25 @@ const NAV_BY_ROLE = {
   receptionist: [
     { path: '/appointments', label: 'Appointments (OPD)', icon: 'CalendarCheck' },
     { path: '/hospitalization', label: 'Hospitalization (IPD)', icon: 'Bed' },
+    {
+      path: '/invoices',
+      label: 'Invoices',
+      icon: 'ReceiptText',
+      children: [
+        {
+          path: '/invoices/prescriptions',
+          label: 'Prescription',
+        },
+        {
+          path: '/invoices/hospital-bills',
+          label: 'Hospital Bill',
+        },
+        {
+          path: '/invoices/discharge-summaries',
+          label: 'Discharge Summary',
+        },
+      ],
+    },
     { path: '/patients', label: 'Patients', icon: 'Users' },
     { path: '/register', label: 'Register Patient', icon: 'UserPlus' },
     { path: '/medicine-orders', label: 'Medicine Orders', icon: 'Pill' },
@@ -78,6 +134,9 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile }) {
   const { user, logout } = useAuth()
   const location = useLocation()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [expandedInvoices, setExpandedInvoices] = useState(
+  location.pathname.startsWith('/invoices')
+)
   const navItems = NAV_BY_ROLE[user?.role] || NAV_BY_ROLE.admin
 
   const sidebarClass = [
@@ -120,28 +179,111 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile }) {
 
         {/* Navigation */}
         <nav className={styles.nav}>
-          {navItems.map((item) => {
-            const Icon = iconMap[item.icon] || LayoutDashboard
-            const isActive =
-              item.path === '/'
-                ? location.pathname === '/'
-                : location.pathname.startsWith(item.path)
+         {navItems.map((item) => {
+  const Icon = iconMap[item.icon] || LayoutDashboard
+
+  const isActive =
+    item.path === '/'
+      ? location.pathname === '/'
+      : location.pathname.startsWith(item.path)
+
+  const hasChildren =
+    Array.isArray(item.children) && item.children.length > 0
+
+  const isInvoices = item.path === '/invoices'
+
+  const isExpanded =
+    isInvoices && expandedInvoices
+
+  return (
+    <div
+      key={item.path}
+      className={styles.navGroup}
+    >
+      {hasChildren ? (
+        <button
+          type="button"
+          className={`${styles.navItem} ${
+            isActive ? styles.active : ''
+          }`}
+          onClick={() => {
+            setExpandedInvoices((prev) => !prev)
+          }}
+          title={collapsed ? item.label : undefined}
+        >
+          <div className={styles.iconBox}>
+            <Icon
+              size={18}
+              className={styles.navIcon}
+            />
+          </div>
+
+          <span className={styles.navLabel}>
+            {item.label}
+          </span>
+
+          {!collapsed && (
+            <ChevronDown
+              size={17}
+              className={`${styles.expandIcon} ${
+                isExpanded ? styles.expanded : ''
+              }`}
+            />
+          )}
+        </button>
+      ) : (
+        <NavLink
+          to={item.path}
+          className={`${styles.navItem} ${
+            isActive ? styles.active : ''
+          }`}
+          onClick={onCloseMobile}
+          title={collapsed ? item.label : undefined}
+        >
+          <div className={styles.iconBox}>
+            <Icon
+              size={18}
+              className={styles.navIcon}
+            />
+          </div>
+
+          <span className={styles.navLabel}>
+            {item.label}
+          </span>
+        </NavLink>
+      )}
+
+      {/* Invoice submenu */}
+      {hasChildren && isExpanded && !collapsed && (
+        <div className={styles.subMenu}>
+          {item.children.map((child) => {
+            const childActive =
+              location.pathname === child.path
 
             return (
               <NavLink
-                key={item.path}
-                to={item.path}
-                className={`${styles.navItem} ${isActive ? styles.active : ''}`}
+                key={child.path}
+                to={child.path}
+                className={`${styles.subMenuItem} ${
+                  childActive
+                    ? styles.subMenuItemActive
+                    : ''
+                }`}
                 onClick={onCloseMobile}
-                title={collapsed ? item.label : undefined}
               >
-                <div className={styles.iconBox}>
-                  <Icon size={18} className={styles.navIcon} />
-                </div>
-                <span className={styles.navLabel}>{item.label}</span>
+                <span className={styles.subMenuDot} />
+
+                <span>
+                  {child.label}
+                </span>
               </NavLink>
             )
           })}
+        </div>
+      )}
+    </div>
+  )
+})}
         </nav>
 
         {/* Footer */}
