@@ -1,0 +1,874 @@
+.page {
+  min-height: 100vh;
+  padding: 30px 38px 70px;
+  box-sizing: border-box;
+  background: #f4f8fc;
+  color: #173b5d;
+  font-family: Inter, Arial, sans-serif;
+}
+
+.screenHeader {
+  max-width: 1440px;
+  margin: 0 auto 22px;
+}
+
+.eyebrow {
+  color: #176ca8;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+}
+
+.screenHeader h1 {
+  margin: 7px 0 5px;
+  color: #092f57;
+  font-size: 34px;
+}
+
+.screenHeader p {
+  margin: 0;
+  color: #6c8196;
+  font-size: 15px;
+}
+
+.card {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 30px;
+  background: #fff;
+  border: 1px solid #d8e5ef;
+  border-radius: 17px;
+  box-shadow: 0 12px 38px rgba(20, 55, 84, .07);
+}
+
+.lookupBox {
+  padding: 20px;
+  border: 1px solid #c7e2f4;
+  border-radius: 13px;
+  background: #f2faff;
+}
+
+.lookupTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 11px;
+}
+
+.lookupTitle label {
+  display: block;
+  color: #153d60;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.lookupTitle small {
+  display: block;
+  margin-top: 4px;
+  color: #6f879c;
+  font-size: 12px;
+}
+
+.liveBadge {
+  padding: 7px 10px;
+  border-radius: 20px;
+  background: #e3f6ec;
+  color: #18734f;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .6px;
+  white-space: nowrap;
+}
+
+.lookupGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.lookupField {
+  min-width: 0;
+}
+
+.lookupField > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #244d6f;
+  font-size: 14.5px;
+  font-weight: 850;
+}
+
+.lookupInputRow {
+  width: 100%;
+}
+
+.lookupInputRow input {
+  width: 100%;
+  height: 49px;
+  box-sizing: border-box;
+  border: 1px solid #aecdde;
+  border-radius: 9px;
+  padding: 0 15px;
+  outline: none;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: #173b5d;
+  background: #fff;
+}
+
+.lookupInputRow input:focus {
+  border-color: #1786c7;
+  box-shadow: 0 0 0 3px rgba(23, 134, 199, .09);
+}
+
+.status {
+  margin-top: 10px;
+  color: #167052;
+  font-size: 13.5px;
+  font-weight: 750;
+}
+
+.section {
+  margin-top: 30px;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e4edf3;
+}
+
+.sectionHeading > span {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #e4f4fd;
+  color: #087fc1;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.sectionHeading > div:not(.modalHeader > div) {
+  min-width: 0;
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  color: #153c5e;
+  font-size: 21px;
+}
+
+.sectionHeading p {
+  margin: 4px 0 0;
+  color: #758ba0;
+  font-size: 13px;
+}
+
+.manageButton {
+  margin-left: auto;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid #a9d7f2;
+  border-radius: 8px;
+  color: #0875ae;
+  background: #eef9ff;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.wide {
+  grid-column: span 2;
+}
+
+.field > span {
+  color: #244d6f;
+  font-size: 14.5px;
+  font-weight: 850;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  height: 46px;
+  box-sizing: border-box;
+  border: 1px solid #c8d9e5;
+  border-radius: 8px;
+  outline: 0;
+  padding: 0 12px;
+  background: #fbfdff;
+  color: #173b5d;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: #1684c3;
+  box-shadow: 0 0 0 3px rgba(22, 132, 195, .08);
+  background: #fff;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #d5e2eb;
+  border-radius: 11px;
+}
+
+.editTable {
+  width: 100%;
+  min-width: 1000px;
+  border-collapse: collapse;
+}
+
+.editTable th {
+  padding: 14px 10px;
+  background: #f3f8fb;
+  color: #345773;
+  text-align: left;
+  font-size: 13.5px;
+  text-transform: uppercase;
+  letter-spacing: .35px;
+  font-weight: 800;
+}
+
+.editTable td {
+  padding: 9px 10px;
+  border-top: 1px solid #e3ebf0;
+  font-size: 15px;
+}
+
+.editTable input,
+.editTable select {
+  width: 100%;
+  height: 43px;
+  box-sizing: border-box;
+  border: 1px solid #c8d9e5;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #fff;
+  color: #173b5d;
+  font-size: 14.5px;
+  font-weight: 550;
+  outline: none;
+}
+
+.editTable input:focus,
+.editTable select:focus {
+  border-color: #1684c3;
+  box-shadow: 0 0 0 3px rgba(22, 132, 195, .07);
+}
+
+.serial {
+  width: 45px;
+  text-align: center;
+  color: #526f86;
+  font-weight: 850;
+}
+
+.amount {
+  white-space: nowrap;
+  color: #123d5e;
+  font-size: 15px !important;
+  font-weight: 900;
+}
+
+.deleteButton {
+  width: 39px;
+  height: 39px;
+  border: 1px solid #f0caca;
+  border-radius: 7px;
+  background: #fff7f7;
+  color: #b42318;
+  cursor: pointer;
+}
+
+.addButton {
+  margin-top: 13px;
+  min-height: 43px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  color: #0875ae;
+  background: #e5f4fd;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.totalArea {
+  margin-top: 22px;
+  padding-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  border-top: 1px solid #e1eaf0;
+}
+
+.words {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.words strong {
+  font-size: 14px;
+}
+
+.words span {
+  color: #536f86;
+  font-size: 14px;
+}
+
+.totalBox {
+  min-width: 320px;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+  border: 1px solid #173b5d;
+  background: #fbfdff;
+}
+
+.totalBox span {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.totalBox strong {
+  font-size: 21px;
+}
+
+.bottomActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
+  padding-top: 25px;
+  border-top: 1px solid #e3ebf0;
+}
+
+.primary,
+.secondary {
+  min-height: 46px;
+  padding: 0 19px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.primary {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #087fc1, #07588d);
+  box-shadow: 0 8px 20px rgba(8, 88, 141, .18);
+}
+
+.secondary {
+  color: #0c5d91;
+  background: #fff;
+  border: 1px solid #bcd7e8;
+}
+
+/* Manage Particulars modal */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(7, 30, 50, .45);
+}
+
+.modal {
+  width: min(760px, 100%);
+  max-height: 86vh;
+  overflow: hidden;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, .22);
+}
+
+.modalHeader {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  border-bottom: 1px solid #e4edf3;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  color: #123d5e;
+  font-size: 19px;
+}
+
+.modalHeader p {
+  margin: 5px 0 0;
+  color: #758ba0;
+  font-size: 12px;
+}
+
+.closeButton {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: #f1f5f8;
+  color: #526b80;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.masterForm {
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 1fr 160px auto auto;
+  gap: 8px;
+  border-bottom: 1px solid #e4edf3;
+  background: #f8fbfd;
+}
+
+.masterForm input {
+  height: 42px;
+  box-sizing: border-box;
+  border: 1px solid #c8d9e5;
+  border-radius: 7px;
+  padding: 0 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+.primarySmall,
+.cancelSmall {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 7px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primarySmall {
+  border: 0;
+  background: #087fc1;
+  color: #fff;
+}
+
+.cancelSmall {
+  border: 1px solid #ccdce7;
+  background: #fff;
+  color: #45627c;
+}
+
+.masterList {
+  max-height: 54vh;
+  overflow-y: auto;
+  padding: 8px 20px 20px;
+}
+
+.masterRow {
+  min-height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  border-bottom: 1px solid #edf2f6;
+}
+
+.masterRow > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.masterRow strong {
+  color: #244d6f;
+  font-size: 13px;
+}
+
+.masterRow span {
+  color: #0875ae;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.masterActions {
+  display: flex;
+  gap: 6px;
+}
+
+.masterActions button {
+  padding: 6px 9px;
+  border: 1px solid #d6e4ed;
+  border-radius: 6px;
+  background: #fff;
+  color: #176ca8;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.masterActions .dangerText {
+  color: #b42318;
+  border-color: #efd2d0;
+}
+
+/* Screen preview hidden; only shown during print */
+.printDocument {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lookupGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .page {
+    padding: 18px 12px 50px;
+  }
+
+  .card {
+    padding: 17px;
+  }
+
+  .lookupGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .lookupInputRow {
+    grid-template-columns: 1fr 78px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wide {
+    grid-column: span 1;
+  }
+
+  .sectionHeading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .manageButton {
+    margin-left: 53px;
+  }
+
+  .totalArea {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .totalBox {
+    min-width: 0;
+  }
+
+  .bottomActions {
+    flex-direction: column;
+  }
+
+  .bottomActions button {
+    width: 100%;
+  }
+
+  .masterForm {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   A4 PRINT
+   ========================= */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  :global(html),
+  :global(body),
+  :global(#root) {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: hidden !important;
+  }
+
+  :global(body *) {
+    visibility: hidden !important;
+  }
+
+  .printDocument,
+  .printDocument *,
+  :global(.printDocument),
+  :global(.printDocument *) {
+    visibility: visible !important;
+  }
+
+  .printDocument,
+  :global(.printDocument) {
+    display: block !important;
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    box-sizing: border-box !important;
+    padding: 8mm 12mm 8mm !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: "Times New Roman", Times, serif !important;
+    z-index: 999999 !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-inside: avoid-page !important;
+    break-after: avoid-page !important;
+  }
+
+  .printHeader {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    position: relative !important;
+    margin-bottom: 2.5mm !important;
+    min-height: 20mm !important;
+  }
+
+  .printLogo {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    width: 32mm !important;
+    flex-shrink: 0 !important;
+  }
+
+  .printLogoImg {
+    height: 13.5mm !important;
+    max-height: 13.5mm !important;
+    width: auto !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin-bottom: 0.5mm !important;
+  }
+
+  .printLogoBrand {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    line-height: 1.1 !important;
+  }
+
+  .printLogoName {
+    font-size: 8.5pt !important;
+    font-weight: bold !important;
+    color: #000000 !important;
+    white-space: nowrap !important;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .printLogoSub {
+    font-size: 6.5pt !important;
+    font-style: italic !important;
+    color: #222222 !important;
+    white-space: nowrap !important;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .printHospital {
+    flex: 1 !important;
+    text-align: center !important;
+    padding-right: 32mm !important;
+  }
+
+  .printHospital h1 {
+    margin: 0 !important;
+    font-size: 24pt !important;
+    font-weight: 900 !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0.8px !important;
+    color: #000000 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .printHospital div {
+    margin-top: 1.5mm !important;
+    font-size: 10.5pt !important;
+    font-weight: bold !important;
+    letter-spacing: 0.4px !important;
+    color: #000000 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .printHeaderSpacer {
+    display: none !important;
+  }
+
+  .printTitleBox {
+    display: flex;
+    justify-content: center;
+    margin: 2mm 0 3.5mm;
+  }
+
+  .printTitle {
+    border: 1.5px solid #000000;
+    padding: 1.5mm 24mm;
+    font-size: 14.5pt;
+    font-weight: 900;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #000000;
+    font-family: "Times New Roman", Times, serif;
+  }
+
+  .printInfo,
+  .printTable {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .printInfo {
+    border: 1.2px solid #000000;
+    margin-bottom: 3.5mm;
+  }
+
+  .printInfo td {
+    padding: 2.2mm 3.5mm;
+    border: none;
+    vertical-align: top;
+    font-size: 11.5pt;
+    line-height: 1.5;
+    color: #000000;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .printInfo td b {
+    font-weight: bold;
+    color: #000000;
+  }
+
+  .printTable {
+    border: 1.2px solid #000000;
+    margin-bottom: 3.5mm;
+  }
+
+  .printTable th,
+  .printTable td {
+    padding: 2.5mm 3.5mm;
+    border-right: 1px solid #000000;
+    border-bottom: 1px solid #000000;
+    font-size: 12pt;
+    line-height: 1.35;
+    vertical-align: middle;
+    color: #000000;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .printTable th:last-child,
+  .printTable td:last-child {
+    border-right: none;
+  }
+
+  .printTable th {
+    font-weight: bold;
+    background: transparent;
+  }
+
+  .printTable td {
+    font-weight: 550;
+  }
+
+  .printTotal td {
+    font-weight: bold;
+    font-size: 12.5pt !important;
+    border-bottom: 0;
+  }
+
+  .amountWords {
+    margin-top: 3.5mm;
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000000;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .amountWords b {
+    font-weight: bold;
+  }
+
+  .signatureRow {
+    position: absolute;
+    left: 12mm;
+    right: 12mm;
+    bottom: 16mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 12pt;
+    font-weight: bold;
+    font-family: "Times New Roman", Times, serif;
+    color: #000000;
+  }
+
+  .printFooter {
+    position: absolute;
+    left: 8mm;
+    right: 8mm;
+    bottom: 4.5mm;
+    padding-top: 2.5mm;
+    border-top: 1.5px solid #000000;
+    text-align: center;
+    font-size: 10.5pt;
+    font-weight: 900;
+    letter-spacing: 0.4px;
+    font-family: "Times New Roman", Times, serif;
+    color: #000000;
+  }
+}
