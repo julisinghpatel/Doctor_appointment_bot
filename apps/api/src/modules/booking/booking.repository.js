@@ -5,7 +5,13 @@ import { toObjectIdString } from '../../utils/registration.js'
 function mapBooking(row) {
   if (!row) return null
   const meta = row.meta || {}
-  const doctorFee = row.doctor_fee !== undefined && row.doctor_fee !== null ? Number(row.doctor_fee) : 0
+  const isOld = Boolean(row.patient_is_old)
+  const baseFee = row.doctor_fee !== undefined && row.doctor_fee !== null ? Number(row.doctor_fee) : 0
+  const oldFee = row.doctor_old_patient_fee !== undefined && row.doctor_old_patient_fee !== null ? Number(row.doctor_old_patient_fee) : 0
+  const emergencyFee = row.doctor_emergency_fee !== undefined && row.doctor_emergency_fee !== null ? Number(row.doctor_emergency_fee) : 0
+  
+  const doctorFee = (isOld && oldFee > 0) ? oldFee : baseFee
+
   return {
     id: row.id,
     _id: row.id,
@@ -44,13 +50,17 @@ function mapBooking(row) {
     consultation_fee: doctorFee,
     doctor_fee: doctorFee,
     consultationFee: doctorFee,
+    old_patient_fee: oldFee,
+    emergency_fee: emergencyFee,
     doctorId: row.doctor_id ? {
       id: row.doctor_id,
       _id: row.doctor_id,
       name: row.doctor_name || '',
       department: row.department_name || '',
       role: 'doctor',
-      consultationFee: doctorFee,
+      consultationFee: baseFee,
+      oldPatientFee: oldFee,
+      emergencyFee: emergencyFee,
     } : null,
     patientId: row.patient_id ? {
       id: row.patient_id,
@@ -87,6 +97,8 @@ const SELECT_BOOKING_WITH_JOINS = sql`
     b.*,
     d.name AS doctor_name,
     d.consultation_fee AS doctor_fee,
+    d.old_patient_fee AS doctor_old_patient_fee,
+    d.emergency_fee AS doctor_emergency_fee,
     dep.name AS department_name,
     p.name AS patient_name,
     p.phone AS patient_phone,

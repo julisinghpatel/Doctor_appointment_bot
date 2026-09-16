@@ -22,6 +22,13 @@ function prepareDoctorData(data) {
   delete payload.imageUrl
   delete payload.ImageUrl
 
+  if (payload.oldPatientFee === undefined && payload.old_patient_fee !== undefined) {
+    payload.oldPatientFee = payload.old_patient_fee
+  }
+  if (payload.emergencyFee === undefined && payload.emergency_fee !== undefined) {
+    payload.emergencyFee = payload.emergency_fee
+  }
+
   return payload
 }
 
@@ -38,6 +45,11 @@ function mapDoctor(row) {
     AOF: row.specialty || '',
     experienceYears: row.experience_years || 0,
     consultationFee: Number(row.consultation_fee || 0),
+    consultation_fee: Number(row.consultation_fee || 0),
+    oldPatientFee: Number(row.old_patient_fee || 0),
+    old_patient_fee: Number(row.old_patient_fee || 0),
+    emergencyFee: Number(row.emergency_fee || 0),
+    emergency_fee: Number(row.emergency_fee || 0),
     isActive: row.is_active,
     image: row.image_url || '',
     imageUrl: row.image_url || '',
@@ -126,7 +138,7 @@ class DoctorRepository {
     const [row] = await sql`
       INSERT INTO doctors (
         name, department_id, qualification, specialization, specialty,
-        experience_years, consultation_fee, is_active, image_url
+        experience_years, consultation_fee, old_patient_fee, emergency_fee, is_active, image_url
       ) VALUES (
         ${payload.name},
         ${payload.departmentId || null},
@@ -135,6 +147,8 @@ class DoctorRepository {
         ${payload.specialty || ''},
         ${payload.experienceYears || 0},
         ${payload.consultationFee || 0},
+        ${payload.oldPatientFee || 0},
+        ${payload.emergencyFee || 0},
         ${payload.isActive !== undefined ? payload.isActive : true},
         ${payload.image || ''}
       )
@@ -148,15 +162,17 @@ class DoctorRepository {
     const [row] = await sql`
       UPDATE doctors
       SET
-        name = COALESCE(${payload.name}, name),
-        department_id = COALESCE(${payload.departmentId}, department_id),
-        qualification = COALESCE(${payload.qualification}, qualification),
-        specialization = COALESCE(${payload.specialization}, specialization),
-        specialty = COALESCE(${payload.specialty}, specialty),
-        experience_years = COALESCE(${payload.experienceYears}, experience_years),
-        consultation_fee = COALESCE(${payload.consultationFee}, consultation_fee),
-        is_active = COALESCE(${payload.isActive}, is_active),
-        image_url = COALESCE(${payload.image}, image_url),
+        name = COALESCE(${payload.name ?? null}, name),
+        department_id = COALESCE(${payload.departmentId ?? null}, department_id),
+        qualification = COALESCE(${payload.qualification ?? null}, qualification),
+        specialization = COALESCE(${payload.specialization ?? null}, specialization),
+        specialty = COALESCE(${payload.specialty ?? null}, specialty),
+        experience_years = COALESCE(${payload.experienceYears ?? null}, experience_years),
+        consultation_fee = COALESCE(${payload.consultationFee ?? null}, consultation_fee),
+        old_patient_fee = COALESCE(${payload.oldPatientFee ?? null}, old_patient_fee),
+        emergency_fee = COALESCE(${payload.emergencyFee ?? null}, emergency_fee),
+        is_active = COALESCE(${payload.isActive ?? null}, is_active),
+        image_url = COALESCE(${payload.image ?? null}, image_url),
         updated_at = NOW()
       WHERE id = ${id}
       RETURNING id

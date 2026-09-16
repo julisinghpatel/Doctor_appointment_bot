@@ -3533,6 +3533,8 @@ CREATE TABLE public.doctors (
     address text DEFAULT ''::text NOT NULL,
     gender public.gender_enum,
     consultation_fee integer DEFAULT 0 NOT NULL,
+    old_patient_fee integer DEFAULT 0 NOT NULL,
+    emergency_fee integer DEFAULT 0 NOT NULL,
     experience_years integer DEFAULT 0 NOT NULL,
     image_url text DEFAULT ''::text NOT NULL,
     max_patients_per_day integer DEFAULT 30 NOT NULL,

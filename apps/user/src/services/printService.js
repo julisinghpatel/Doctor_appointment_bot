@@ -20,8 +20,19 @@ export function sourceLabel(booking = {}) {
   return null
 }
 
-function resolveFee(row, doctorFee, dObj) {
-  const feeCandidates = [
+function resolveFee(row, doctorFee, dObj, isOld) {
+  const feeCandidates = isOld ? [
+    row?.old_patient_fee,
+    dObj?.oldPatientFee,
+    dObj?.old_patient_fee,
+    row?.consultation_fee,
+    row?.doctor_fee,
+    row?.consultationFee,
+    dObj?.consultationFee,
+    dObj?.consultation_fee,
+    doctorFee,
+    500,
+  ] : [
     row?.consultation_fee,
     row?.doctor_fee,
     row?.consultationFee,
@@ -45,7 +56,8 @@ function mergeSlipFields(row, patient, doctorSpec, doctorFee) {
   const pObj = (row.patientId && typeof row.patientId === 'object') ? row.patientId : {}
   const dObj = (row.doctorId && typeof row.doctorId === 'object') ? row.doctorId : {}
   const rx = row.prescription || row.meta?.prescription || null
-  const fee = resolveFee(row, doctorFee, dObj)
+  const isOld = Boolean(row.isOld || row.is_old || pObj.isOld || patient?.isOld || patient?.is_old)
+  const fee = resolveFee(row, doctorFee, dObj, isOld)
 
   return {
     ...row,
@@ -58,7 +70,7 @@ function mergeSlipFields(row, patient, doctorSpec, doctorFee) {
     district: row.district || pObj.district || patient?.district || '',
     pinCode: row.pinCode || pObj.pinCode || patient?.pinCode || patient?.pin_code || '',
     uhid: row.uhid || pObj.uhid || patient?.uhid || 'KGN-PENDING',
-    isOld: Boolean(row.isOld || row.is_old || pObj.isOld || patient?.isOld || patient?.is_old),
+    isOld,
     doctor_name: row.doctor_name || dObj.name || '',
     doctor_specialization: row.doctor_specialization || dObj.department || doctorSpec || '',
     consultation_fee: fee,

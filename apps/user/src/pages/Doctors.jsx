@@ -35,6 +35,8 @@ const emptyForm = {
   specialty: '',
   experience: '',
   consultation_fee: '',
+  old_patient_fee: '',
+  emergency_fee: '',
   gender: '',
   phone: '',
   email: '',
@@ -114,6 +116,8 @@ export default function Doctors() {
       specialty: doctor.specialty || doctor.AOF || '',
       experience: doctor.experience || '',
       consultation_fee: doctor.consultation_fee ?? doctor.consultationFee ?? '',
+      old_patient_fee: doctor.old_patient_fee ?? doctor.oldPatientFee ?? '',
+      emergency_fee: doctor.emergency_fee ?? doctor.emergencyFee ?? '',
       gender: doctor.gender || '',
       phone: doctor.phone || '',
       email: doctor.email || '',
@@ -169,6 +173,8 @@ export default function Doctors() {
       specialty: form.specialty,
       experience: form.experience,
       consultation_fee: Number(form.consultation_fee || 0),
+      old_patient_fee: Number(form.old_patient_fee || 0),
+      emergency_fee: Number(form.emergency_fee || 0),
       gender: form.gender || undefined,
       phone: form.phone,
       email: form.email,
@@ -272,8 +278,18 @@ export default function Doctors() {
               {/* Doctor Metadata Grid */}
               <div className={styles.doctorMeta}>
                 <div className={styles.metaRow}>
-                  <span className={styles.metaLabel}>Fee</span>
+                  <span className={styles.metaLabel}>New Pt Fee</span>
                   <span className={styles.metaValue}>{formatCurrency(doctor.consultation_fee)}</span>
+                </div>
+
+                <div className={styles.metaRow}>
+                  <span className={styles.metaLabel}>Old Pt Fee</span>
+                  <span className={styles.metaValue}>{formatCurrency(doctor.old_patient_fee || doctor.consultation_fee)}</span>
+                </div>
+
+                <div className={styles.metaRow}>
+                  <span className={styles.metaLabel}>Emergency Fee</span>
+                  <span className={styles.metaValue}>{formatCurrency(doctor.emergency_fee || doctor.consultation_fee)}</span>
                 </div>
 
                 {doctor.experience && doctor.experience !== '0' && (
@@ -561,11 +577,11 @@ export default function Doctors() {
             </div>
           </div>
 
-          {/* Fee & Max Patients Per Day */}
+          {/* Fee Tier Row: Consultation Fee, Old Patient Fee, Emergency Fee & Max Patients */}
           <div className={styles.formRowTwo}>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>
-                Consultation Fee (₹) <span className={styles.reqStar}>*</span>
+                New Pt Consultation Fee (₹) <span className={styles.reqStar}>*</span>
               </label>
               <div className={styles.inputWithIcon}>
                 <IndianRupee size={16} className={styles.inputLeadingIcon} />
@@ -577,6 +593,42 @@ export default function Doctors() {
                   placeholder="500"
                   min="0"
                   required
+                />
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>
+                Old Patient Fee (₹)
+              </label>
+              <div className={styles.inputWithIcon}>
+                <IndianRupee size={16} className={styles.inputLeadingIcon} />
+                <input
+                  className={styles.formInput}
+                  type="number"
+                  value={form.old_patient_fee}
+                  onChange={(e) => setForm({ ...form, old_patient_fee: e.target.value })}
+                  placeholder="e.g. 300"
+                  min="0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.formRowTwo}>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>
+                Emergency Fee (₹)
+              </label>
+              <div className={styles.inputWithIcon}>
+                <IndianRupee size={16} className={styles.inputLeadingIcon} />
+                <input
+                  className={styles.formInput}
+                  type="number"
+                  value={form.emergency_fee}
+                  onChange={(e) => setForm({ ...form, emergency_fee: e.target.value })}
+                  placeholder="e.g. 800"
+                  min="0"
                 />
               </div>
             </div>

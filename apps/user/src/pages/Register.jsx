@@ -490,13 +490,22 @@ export default function Register() {
                     <option value="">— Select doctor —</option>
                     {doctors.map((d) => {
                       const spec = d.specialization || d.department || d.qualification
+                      const fee = form.isOld ? (d.old_patient_fee || d.oldPatientFee || d.consultation_fee || d.consultationFee) : (d.consultation_fee || d.consultationFee)
                       return (
                         <option key={d.id} value={d.id}>
-                          {d.name}{spec ? ` (${spec})` : ''}
+                          {d.name}{spec ? ` (${spec})` : ''} — ₹{fee}
                         </option>
                       )
                     })}
                   </select>
+                  {selectedDoctor && (
+                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#0369a1', fontWeight: 500, background: '#f0f9ff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                      💰 Applicable Fee ({form.isOld ? 'Old / Existing Patient' : 'New Patient'}): <strong>₹{form.isOld ? (selectedDoctor.old_patient_fee || selectedDoctor.oldPatientFee || selectedDoctor.consultation_fee || selectedDoctor.consultationFee) : (selectedDoctor.consultation_fee || selectedDoctor.consultationFee)}</strong>
+                      {form.isOld && (selectedDoctor.old_patient_fee || selectedDoctor.oldPatientFee) ? (
+                        <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '6px' }}>(Regular: ₹{selectedDoctor.consultation_fee || selectedDoctor.consultationFee})</span>
+                      ) : null}
+                    </div>
+                  )}
                 </FormField>
               </div>
               <FormField label="Health Problem" hint="स्वास्थ्य समस्या">
@@ -511,7 +520,7 @@ export default function Register() {
               <div className={styles.ticket}>
                 <div className={styles.ticketHead}>Review Appointment Request · समीक्षा</div>
                 <dl className={styles.ticketRows}>
-                  <div><dt>Patient</dt><dd>{form.name}, {form.age} · {form.gender}</dd></div>
+                  <div><dt>Patient</dt><dd>{form.name}, {form.age} · {form.gender} ({form.isOld ? 'Old Patient' : 'New Patient'})</dd></div>
                   <div><dt>Mobile</dt><dd>{form.phone}</dd></div>
                   <div><dt>Address</dt><dd>{form.address}{form.district ? `, ${form.district}` : ''}{form.pinCode ? ` — ${form.pinCode}` : ''}</dd></div>
                   <div><dt>Visit</dt><dd>{form.type === 'OPD' ? 'OPD' : 'Hospitalization'} · {formatDate(form.preferredDate)}</dd></div>
@@ -525,6 +534,19 @@ export default function Register() {
                           {(selectedDoctor.specialization || selectedDoctor.department || selectedDoctor.qualification) ? (
                             ` (${selectedDoctor.specialization || selectedDoctor.department || selectedDoctor.qualification})`
                           ) : ''}
+                        </>
+                      ) : '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Doctor Charge</dt>
+                    <dd>
+                      {selectedDoctor ? (
+                        <>
+                          <strong>₹{form.isOld ? (selectedDoctor.old_patient_fee || selectedDoctor.oldPatientFee || selectedDoctor.consultation_fee || selectedDoctor.consultationFee) : (selectedDoctor.consultation_fee || selectedDoctor.consultationFee)}</strong>
+                          <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '4px' }}>
+                            ({form.isOld ? 'Old Patient Fee' : 'New Patient Fee'})
+                          </span>
                         </>
                       ) : '—'}
                     </dd>

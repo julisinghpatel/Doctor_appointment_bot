@@ -24,7 +24,9 @@ function SingleSlipCard({ booking }) {
   const docTitle = isIPD ? 'IPD Admission Ticket' : 'OPD Consultation Slip'
   const isOldPatient = Boolean(booking.isOld || booking.is_old)
   const patientStatusLabel = isOldPatient ? ' (Old Patient पुराना मरीज)' : ' (नया मरीज)'
-  const rawFee = booking.consultation_fee || booking.doctor_fee || booking.consultationFee || booking.doctorId?.consultationFee || booking.fee || 500
+  const rawFee = isOldPatient
+    ? (booking.old_patient_fee || booking.doctorId?.oldPatientFee || booking.doctorId?.old_patient_fee || booking.consultation_fee || booking.doctor_fee || booking.consultationFee || booking.doctorId?.consultationFee || booking.fee || 500)
+    : (booking.consultation_fee || booking.doctor_fee || booking.consultationFee || booking.doctorId?.consultationFee || booking.fee || 500)
   const feeDisplay = `₹${rawFee}`
 
   return (
