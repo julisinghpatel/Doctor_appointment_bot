@@ -9,6 +9,7 @@ export const STEPS = {
 
   // OPD Booking Flow
   OPD_DEPARTMENT: "OPD_DEPARTMENT",
+  OPD_PATIENT_TYPE_EARLY: "OPD_PATIENT_TYPE_EARLY",
   OPD_GYNAE_CATEGORY: "OPD_GYNAE_CATEGORY",
   OPD_INFERTILITY_VISIT: "OPD_INFERTILITY_VISIT",
   OPD_DOCTOR: "OPD_DOCTOR",
@@ -69,6 +70,9 @@ export const MESSAGES = {
     msg += `\n👉 *Reply with number* | 0️⃣ *Main Menu*`;
     return msg;
   },
+
+  patientTypeEarly: (deptName = '') =>
+    `📋 *PATIENT TYPE / मरीज का प्रकार*${deptName ? `\n🏥 Department: ${deptName}` : ''}\n\n*Is this an Existing/Old Patient or a New Patient at KG Nanda Hospital?*\nक्या मरीज अस्पताल का पुराना मरीज है या नया मरीज?\n\n1️⃣ Old / Existing Patient (पुराना मरीज)\n2️⃣ New Patient (नया मरीज)\n\n0️⃣ Back | 00 Main Menu`,
 
   gynaeCategory: () =>
     `🏥 *Gynaecology & Obstetrics / स्त्री रोग एवं प्रसूति विभाग*\n\n*Please select consultation type / कृपया श्रेणी चुनें:*\n\n1️⃣ Infertility / बांझपन (निःसंतानता)\n2️⃣ Others / अन्य\n\n0️⃣ Back | 00 Main Menu`,

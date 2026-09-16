@@ -47,7 +47,9 @@ export class PrintSlipHandler {
       booking.pinCode ? ` — ${booking.pinCode}` : '',
     ].join('')
 
-    const rawFee = booking.consultation_fee || booking.doctor_fee || booking.consultationFee || booking.doctorId?.consultationFee || booking.fee || 500
+    const rawFee = isOldPatient
+      ? (booking.old_patient_fee || booking.doctorId?.oldPatientFee || booking.doctorId?.old_patient_fee || booking.consultation_fee || booking.doctor_fee || booking.consultationFee || booking.doctorId?.consultationFee || booking.fee || 500)
+      : (booking.consultation_fee || booking.doctor_fee || booking.consultationFee || booking.doctorId?.consultationFee || booking.fee || 500)
     const feeDisplay = `₹${rawFee}`
 
     const accentBg = isIPD ? '#e8f5e9' : '#e3f2fd'
