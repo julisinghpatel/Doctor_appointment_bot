@@ -35,7 +35,7 @@ export default function MedicineOrders() {
 
   // Mutation
   const statusMutation = useMutation({
-    mutationFn: ({ id, status, notes }) => medicineOrderService.updateStatus(id, status, notes),
+    mutationFn: ({ id, status, notes, mobile }) => medicineOrderService.updateStatus(id, status, notes, mobile),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medicineOrders'] })
       toast.success('Order status updated')
@@ -45,7 +45,7 @@ export default function MedicineOrders() {
   })
 
   const handleStatusChange = (id, newStatus) => {
-    statusMutation.mutate({ id, status: newStatus, notes: staffNotes })
+    statusMutation.mutate({ id, status: newStatus, notes: staffNotes, mobile: selectedOrder?.mobile })
   }
 
   const handleViewDetail = (order) => {

@@ -40,7 +40,7 @@ export const medicineOrderService = {
     }
   },
 
-  async updateStatus(id, status, staffNotes = undefined) {
+  async updateStatus(id, status, staffNotes = undefined, mobile = undefined) {
     if (isMockMode()) {
       await new Promise((r) => setTimeout(r, MOCK_DELAY))
       const order = mockMedicineOrders.find((o) => o.id === Number(id))
@@ -51,6 +51,7 @@ export const medicineOrderService = {
     }
     const payload = { status }
     if (staffNotes !== undefined) payload.staffNotes = staffNotes
+    if (mobile) payload.mobile = mobile
     const { data } = await api.patch(`/medicine-orders/${id}/status`, payload)
     return data
   },
