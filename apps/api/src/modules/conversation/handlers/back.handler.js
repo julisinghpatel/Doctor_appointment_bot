@@ -88,6 +88,10 @@ export const backHandler = {
       await conversationRepo.upsert(phone, { currentStep: STEPS.PATIENT_DISTRICT })
       return service.sendMessage(phone, MESSAGES.patientDistrict())
     }
+    if (state.currentStep === STEPS.PATIENT_PINCODE) {
+      await conversationRepo.upsert(phone, { currentStep: STEPS.PATIENT_ADDRESS })
+      return service.sendMessage(phone, MESSAGES.patientAddress())
+    }
     if (state.currentStep === STEPS.PATIENT_PROBLEM) {
       const isExisting = state.stateData?.isExistingPatient === true
       if (isExisting) {
@@ -95,8 +99,8 @@ export const backHandler = {
         await conversationRepo.upsert(phone, { currentStep: STEPS.PATIENT_GENDER })
         return service.sendMessage(phone, MESSAGES.patientGender())
       }
-      await conversationRepo.upsert(phone, { currentStep: STEPS.PATIENT_ADDRESS })
-      return service.sendMessage(phone, MESSAGES.patientAddress())
+      await conversationRepo.upsert(phone, { currentStep: STEPS.PATIENT_PINCODE })
+      return service.sendMessage(phone, MESSAGES.patientPinCode())
     }
     if (state.currentStep === STEPS.REVIEW) {
       await conversationRepo.upsert(phone, { currentStep: STEPS.PATIENT_PROBLEM })
@@ -145,6 +149,10 @@ export const backHandler = {
       await conversationRepo.upsert(phone, { currentStep: STEPS.HOSP_DISTRICT })
       return service.sendMessage(phone, MESSAGES.hospDistrict())
     }
+    if (state.currentStep === STEPS.HOSP_PINCODE) {
+      await conversationRepo.upsert(phone, { currentStep: STEPS.HOSP_ADDRESS })
+      return service.sendMessage(phone, MESSAGES.hospAddress())
+    }
     if (state.currentStep === STEPS.HOSP_PROBLEM) {
       const isExisting = state.stateData?.isExistingPatient === true
       const hasAddress = Boolean(state.stateData?.district && state.stateData?.district !== 'N/A' && state.stateData?.address && state.stateData?.address !== 'N/A')
@@ -152,8 +160,8 @@ export const backHandler = {
         await conversationRepo.upsert(phone, { currentStep: STEPS.HOSP_TYPE })
         return service.sendMessage(phone, MESSAGES.hospType(state.tempName))
       }
-      await conversationRepo.upsert(phone, { currentStep: STEPS.HOSP_ADDRESS })
-      return service.sendMessage(phone, MESSAGES.hospAddress())
+      await conversationRepo.upsert(phone, { currentStep: STEPS.HOSP_PINCODE })
+      return service.sendMessage(phone, MESSAGES.hospPinCode())
     }
     if (state.currentStep === STEPS.HOSP_DATE) {
       await conversationRepo.upsert(phone, { currentStep: STEPS.HOSP_PROBLEM })
@@ -186,6 +194,10 @@ export const backHandler = {
       if (prevStep === STEPS.MED_WHO_FOR) return service.sendMessage(phone, MESSAGES.medWhoFor(patients))
       if (prevStep === STEPS.MED_NAME) return service.sendMessage(phone, MESSAGES.medName())
       return service.sendMessage(phone, MESSAGES.medStart())
+    }
+    if (state.currentStep === STEPS.MED_PINCODE) {
+      await conversationRepo.upsert(phone, { currentStep: STEPS.MED_ADDRESS })
+      return service.sendMessage(phone, MESSAGES.medAddress())
     }
 
     return service.resetAndWelcome(phone)

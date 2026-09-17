@@ -86,18 +86,19 @@ async function send(text) {
 
 /** Drive a new patient to the REVIEW step, return the review text */
 async function driveToReview() {
-  await send('hi')       // WELCOME
-  await send('1')        // OPD → departments
-  await send('1')        // dept → doctors
-  await send('1')        // doctor → dates
-  await send('1')        // date → patient name (new patient)
-  await send('John Doe') // → mobile
-  await send('9876543210') // → age
-  await send('30')       // → gender
-  await send('1')        // Male → patient type
-  await send('2')        // New Patient → district
-  await send('Jaunpur')  // → address
-  await send('Civil Lines 222001') // → problem
+  await send('hi')        // WELCOME
+  await send('1')         // OPD → departments
+  await send('1')         // dept → OPD_PATIENT_TYPE_EARLY
+  await send('2')         // New Patient → doctors
+  await send('1')         // doctor → dates
+  await send('1')         // date → patient name (new patient)
+  await send('John Doe')  // → mobile
+  await send('9876543210')// → age
+  await send('30')        // → age → gender
+  await send('1')         // Male → district
+  await send('Jaunpur')   // → address
+  await send('Civil Lines') // → PIN code
+  await send('222001')    // → problem
   return send('Fever for 2 days')   // → REVIEW
 }
 
@@ -124,6 +125,10 @@ describe('Conversation Booking Flow (current)', () => {
     expect(stateStore[PHONE].currentStep).toBe('OPD_DEPARTMENT')
 
     reply = await send('1')
+    expect(reply).toContain('PATIENT TYPE')
+    expect(stateStore[PHONE].currentStep).toBe('OPD_PATIENT_TYPE_EARLY')
+
+    reply = await send('2')
     expect(reply).toContain('Dr. Smith')
     expect(stateStore[PHONE].currentStep).toBe('OPD_DOCTOR')
 
@@ -139,7 +144,7 @@ describe('Conversation Booking Flow (current)', () => {
 
     const reply = await send('1')
     expect(patientService.registerPatientWithBooking).toHaveBeenCalledWith(
-      expect.objectContaining({ phone: PHONE, name: 'John Doe', type: 'OPD' }),
+      expect.objectContaining({ phone: PHONE, name: 'John Doe', type: 'OPD', pinCode: '222001' }),
       { source: 'whatsapp' },
       { validate: false }
     )
@@ -150,7 +155,7 @@ describe('Conversation Booking Flow (current)', () => {
 
   it('routes a returning patient through WHO_FOR', async () => {
     patientService.findAllByPhone.mockResolvedValue([PATIENT_RETURNING])
-    await send('hi'); await send('1'); await send('1'); await send('1')
+    await send('hi'); await send('1'); await send('1'); await send('2'); await send('1')
     const reply = await send('1')
     expect(reply).toContain('BOOKING FOR WHOM')
     expect(stateStore[PHONE].currentStep).toBe('WHO_FOR')
@@ -179,7 +184,8 @@ describe('Conversation Booking Flow (current)', () => {
     let reply = await send('99')
     expect(reply).toContain('Invalid input')
 
-    await send('1')
+    await send('1') // patient type early
+    await send('2') // new patient -> doctor
     reply = await send('99')
     expect(reply).toContain('Invalid input')
 
@@ -189,7 +195,7 @@ describe('Conversation Booking Flow (current)', () => {
   })
 
   it('rejects bad mobile/age/gender in patient form', async () => {
-    await send('hi'); await send('1'); await send('1'); await send('1'); await send('1')
+    await send('hi'); await send('1'); await send('1'); await send('2'); await send('1'); await send('1')
     await send('John Doe')
     let reply = await send('123')
     expect(reply).toContain('Invalid Mobile Number')
@@ -215,7 +221,10 @@ describe('Conversation Booking Flow (current)', () => {
     await send('1')          // Male
     await send('1')          // Old/Existing Patient (isOld = true)
     await send('Jaunpur')    // district
-    await send('Civil Lines 222001') // address with 6-digit PIN code
+    await send('Civil Lines')// address
+    expect(stateStore[PHONE].currentStep).toBe('HOSP_PINCODE')
+    await send('222001')     // PIN code
+    expect(stateStore[PHONE].currentStep).toBe('HOSP_PROBLEM')
     await send('Chest pain') // problem
     expect(stateStore[PHONE].currentStep).toBe('HOSP_DATE')
     const review = await send('1') // date selection -> REVIEW
@@ -223,7 +232,7 @@ describe('Conversation Booking Flow (current)', () => {
     expect(stateStore[PHONE].currentStep).toBe('HOSP_REVIEW')
     const reply = await send('1') // confirm review -> done
     expect(patientService.registerPatientWithBooking).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'HOSPITALIZATION', isOld: true, name: 'Ramesh' }),
+      expect.objectContaining({ type: 'HOSPITALIZATION', isOld: true, name: 'Ramesh', pinCode: '222001' }),
       { source: 'whatsapp' },
       { validate: false }
     )
@@ -259,8 +268,12 @@ describe('Conversation Booking Flow (current)', () => {
     expect(stateStore[PHONE].currentStep).toBe('MED_NAME')
     await send('Ramesh Kumar')
     expect(stateStore[PHONE].currentStep).toBe('MED_ADDRESS')
-    const reply = await send('Civil Lines, Jaunpur 222001')
-    expect(medicineOrderService.createOrder).toHaveBeenCalled()
+    await send('Civil Lines, Jaunpur')
+    expect(stateStore[PHONE].currentStep).toBe('MED_PINCODE')
+    const reply = await send('222001')
+    expect(medicineOrderService.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ deliveryAddress: 'Civil Lines, Jaunpur', pinCode: '222001' })
+    )
     expect(reply).toContain('Prescription Received')
     expect(stateStore[PHONE].currentStep).toBe('WELCOME')
   })
@@ -289,7 +302,7 @@ describe('Conversation Booking Flow (current)', () => {
   })
 
   it('rejects mobile numbers not matching exactly 10 digits', async () => {
-    await send('hi'); await send('1'); await send('1'); await send('1'); await send('1')
+    await send('hi'); await send('1'); await send('1'); await send('2'); await send('1'); await send('1')
     await send('Jane Doe')
     let reply = await send('987654321') // 9 digits
     expect(reply).toContain('Invalid Mobile Number')
@@ -299,12 +312,16 @@ describe('Conversation Booking Flow (current)', () => {
     expect(reply).toContain('Age')
   })
 
-  it('rejects addresses missing a 6-digit PIN code', async () => {
-    await send('hi'); await send('1'); await send('1'); await send('1'); await send('1')
-    await send('Jane Doe'); await send('9876543210'); await send('25'); await send('2'); await send('2'); await send('Jaunpur')
-    let reply = await send('No Pincode Address')
+  it('validates 6-digit PIN code in a separate question', async () => {
+    await send('hi'); await send('1'); await send('1'); await send('2'); await send('1'); await send('1')
+    await send('Jane Doe'); await send('9876543210'); await send('25'); await send('1'); await send('Jaunpur')
+    let reply = await send('Civil Lines')
+    expect(reply).toContain('PIN Code')
+    expect(stateStore[PHONE].currentStep).toBe('PATIENT_PINCODE')
+    reply = await send('123') // invalid pin
     expect(reply).toContain('Invalid PIN Code')
-    reply = await send('Address with pin 232104')
+    reply = await send('232104') // valid pin
     expect(reply).toContain('Health Problem')
+    expect(stateStore[PHONE].currentStep).toBe('PATIENT_PROBLEM')
   })
 })

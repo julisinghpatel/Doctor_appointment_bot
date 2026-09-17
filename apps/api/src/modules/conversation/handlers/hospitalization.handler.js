@@ -86,9 +86,15 @@ export const hospitalizationHandler = {
   },
 
   async handleHospAddress(service, phone, state, input) {
-    const pinMatch = input.match(/\b\d{6}\b/)
-    if (!pinMatch) return service.sendMessage(phone, MESSAGES.invalidPinCode())
-    await conversationRepo.upsert(phone, { currentStep: STEPS.HOSP_PROBLEM, stateData: { ...state.stateData, address: input, pinCode: pinMatch[0] } })
+    if (!input || input.trim().length < 2) return service.sendMessage(phone, MESSAGES.invalidInput())
+    await conversationRepo.upsert(phone, { currentStep: STEPS.HOSP_PINCODE, stateData: { ...state.stateData, address: input.trim() } })
+    return service.sendMessage(phone, MESSAGES.hospPinCode())
+  },
+
+  async handleHospPinCode(service, phone, state, input) {
+    const cleanPin = input.trim().replace(/\D/g, '')
+    if (cleanPin.length !== 6) return service.sendMessage(phone, MESSAGES.invalidPinCode())
+    await conversationRepo.upsert(phone, { currentStep: STEPS.HOSP_PROBLEM, stateData: { ...state.stateData, pinCode: cleanPin } })
     return service.sendMessage(phone, MESSAGES.hospProblem())
   },
 
@@ -127,6 +133,7 @@ export const hospitalizationHandler = {
       isOld: freshState.stateData.isOld,
       district: freshState.stateData.district,
       address: freshState.stateData.address,
+      pinCode: freshState.stateData.pinCode,
       problem: freshState.stateData.problem,
     }))
   },

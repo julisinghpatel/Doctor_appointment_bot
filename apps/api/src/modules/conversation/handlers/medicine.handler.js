@@ -92,8 +92,14 @@ export const medicineHandler = {
   },
 
   async handleMedAddress(service, phone, state, input) {
-    const pinMatch = input.match(/\b\d{6}\b/)
-    if (!pinMatch) return service.sendMessage(phone, MESSAGES.invalidPinCode())
+    if (!input || input.trim().length < 2) return service.sendMessage(phone, MESSAGES.invalidInput())
+    await conversationRepo.upsert(phone, { currentStep: STEPS.MED_PINCODE, stateData: { ...state.stateData, address: input.trim() } })
+    return service.sendMessage(phone, MESSAGES.medPinCode())
+  },
+
+  async handleMedPinCode(service, phone, state, input) {
+    const cleanPin = input.trim().replace(/\D/g, '')
+    if (cleanPin.length !== 6) return service.sendMessage(phone, MESSAGES.invalidPinCode())
 
     let patientId = state.stateData?.patientId
     if (!patientId) {
@@ -104,8 +110,8 @@ export const medicineHandler = {
     
     await medicineOrderService.createOrder({
       patientId,
-      deliveryAddress: input,
-      pinCode: pinMatch[0],
+      deliveryAddress: state.stateData.address,
+      pinCode: cleanPin,
       prescriptionUrl: state.stateData.prescriptionUrl
     })
 

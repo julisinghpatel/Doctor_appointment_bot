@@ -22,6 +22,7 @@ export const STEPS = {
   PATIENT_TYPE: "PATIENT_TYPE",
   PATIENT_DISTRICT: "PATIENT_DISTRICT",
   PATIENT_ADDRESS: "PATIENT_ADDRESS",
+  PATIENT_PINCODE: "PATIENT_PINCODE",
   PATIENT_PROBLEM: "PATIENT_PROBLEM",
   REVIEW: "REVIEW",
 
@@ -34,6 +35,7 @@ export const STEPS = {
   HOSP_TYPE: "HOSP_TYPE",
   HOSP_DISTRICT: "HOSP_DISTRICT",
   HOSP_ADDRESS: "HOSP_ADDRESS",
+  HOSP_PINCODE: "HOSP_PINCODE",
   HOSP_PROBLEM: "HOSP_PROBLEM",
   HOSP_DATE: "HOSP_DATE",
   HOSP_REVIEW: "HOSP_REVIEW",
@@ -43,6 +45,7 @@ export const STEPS = {
   MED_WHO_FOR: "MED_WHO_FOR",
   MED_NAME: "MED_NAME",
   MED_ADDRESS: "MED_ADDRESS",
+  MED_PINCODE: "MED_PINCODE",
 
   // Static flows
   SUPPORT: "SUPPORT",
@@ -140,13 +143,16 @@ export const MESSAGES = {
     `📍 *District / जिले का नाम*\n*Please enter your district name.*\nअपने जिले का नाम दर्ज करें।\n\n0️⃣ Back | 00 Main Menu`,
 
   patientAddress: () =>
-    `🏠 *Complete Address with PIN Code*\nपूरा पता पिन कोड के साथ\n*Please enter your complete residential address including PIN code.*\nपिन कोड सहित अपना पूरा पता दर्ज करें।\n\n0️⃣ Back | 00 Main Menu`,
+    `🏠 *Residential Address / आवासीय पता*\n*Please enter your residential address.*\nअपना आवासीय पता दर्ज करें।\n\n0️⃣ Back | 00 Main Menu`,
+
+  patientPinCode: () =>
+    `📮 *PIN Code / पिन कोड*\n*Please enter your 6-digit PIN code.*\n6 अंकों का पिन कोड दर्ज करें। (उदा: 232104)\n\n0️⃣ Back | 00 Main Menu`,
 
   patientProblem: () =>
     `🩺 *Health Problem / स्वास्थ्य समस्या*\n*Please briefly describe the patient's health problem.*\nकृपया मरीज की समस्या का संक्षिप्त विवरण दें।\n\n0️⃣ Back | 00 Main Menu`,
 
   review: (data) =>
-    `📋 *REVIEW APPOINTMENT REQUEST*\n\n👨‍⚕️ Doctor: ${data.doctorName}\n📅 Preferred Date: ${data.date}\n\n👤 Patient: ${data.name}\n📱 Mobile: ${data.mobile}\n🎂 Age: ${data.age}\n⚧ Gender: ${data.gender}\n🏥 Type: ${data.isOld ? "Old / Existing Patient (पुराना मरीज)" : "New Patient (नया मरीज)"}\n📍 District: ${data.district}\n🏠 Address: ${data.address}\n🩺 Problem: ${data.problem}\n\n*Confirm details?*\n1️⃣ Confirm / पुष्टि करें\n2️⃣ Edit / बदलाव करें\n0️⃣ Main Menu`,
+    `📋 *REVIEW APPOINTMENT REQUEST*\n\n👨‍⚕️ Doctor: ${data.doctorName}\n📅 Preferred Date: ${data.date}\n\n👤 Patient: ${data.name}\n📱 Mobile: ${data.mobile}\n🎂 Age: ${data.age}\n⚧ Gender: ${data.gender}\n🏥 Type: ${data.isOld ? "Old / Existing Patient (पुराना मरीज)" : "New Patient (नया मरीज)"}\n📍 District: ${data.district}\n🏠 Address: ${data.address}${data.pinCode ? ` - ${data.pinCode}` : ''}\n🩺 Problem: ${data.problem}\n\n*Confirm details?*\n1️⃣ Confirm / पुष्टि करें\n2️⃣ Edit / बदलाव करें\n0️⃣ Main Menu`,
 
   appointmentConfirmed: (data) =>
     `✅ *Appointment Request Received!*\n✅ अपॉइंटमेंट अनुरोध सफलतापूर्वक प्राप्त हुआ!\n\n🎫 *Token No:* ${data.tokenNumber}\n🆔 *UHID No:* ${data.uhid}\n\n📋 *Appointment Details / विवरण:*\n👨‍⚕️ Doctor: ${data.doctorName}\n📅 Date: ${data.date}\n👤 Name: ${data.name}\n📱 Mobile: ${data.mobile}\n\n📌 *Your booking has been confirmed.*\n📌 आपकी बुकिंग की पुष्टि कर दी गई है।।\n\n👉 *To return to the main menu, send "Hi" or "Start".*\n👉 मुख्य मेनू पर लौटने के लिए "Hi" या "Start" भेजें।`,
@@ -185,7 +191,10 @@ export const MESSAGES = {
     `📍 *District / जिले का नाम*\n*Please enter your district name.*\nअपने जिले का नाम दर्ज करें।\n\n0️⃣ Back | 00 Main Menu`,
 
   hospAddress: () =>
-    `🏠 *Complete Address with PIN Code*\nपूरा पता पिन कोड के साथ\n*Please enter your complete residential address including PIN code.*\nपिन कोड सहित अपना पूरा पता दर्ज करें।\n\n0️⃣ Back | 00 Main Menu`,
+    `🏠 *Residential Address / आवासीय पता*\n*Please enter your residential address.*\nअपना आवासीय पता दर्ज करें।\n\n0️⃣ Back | 00 Main Menu`,
+
+  hospPinCode: () =>
+    `📮 *PIN Code / पिन कोड*\n*Please enter your 6-digit PIN code.*\n6 अंकों का पिन कोड दर्ज करें। (उदा: 232104)\n\n0️⃣ Back | 00 Main Menu`,
 
   hospProblem: () =>
     `🩺 *Please describe the illness/problem.*\nबीमारी का विवरण दें।\n\n0️⃣ Back | 00 Main Menu`,
@@ -204,7 +213,7 @@ export const MESSAGES = {
   },
 
   hospReview: (data) =>
-    `📋 *REVIEW HOSPITALIZATION REQUEST*\n\n🏥 Type: Hospitalization / Admission\n📅 Preferred Date: ${data.date}\n\n👤 Patient: ${data.name}\n📱 Mobile: ${data.mobile}\n🎂 Age: ${data.age}\n⚧ Gender: ${data.gender}\n🏥 Patient Status: ${data.isOld ? "Old / Existing Patient (पुराना मरीज)" : "New Patient (नया मरीज)"}\n📍 District: ${data.district}\n🏠 Address: ${data.address}\n🩺 Illness/Problem: ${data.problem}\n\n*Confirm hospitalization request?*\n1️⃣ Confirm / पुष्टि करें\n2️⃣ Edit / बदलाव करें\n0️⃣ Main Menu`,
+    `📋 *REVIEW HOSPITALIZATION REQUEST*\n\n🏥 Type: Hospitalization / Admission\n📅 Preferred Date: ${data.date}\n\n👤 Patient: ${data.name}\n📱 Mobile: ${data.mobile}\n🎂 Age: ${data.age}\n⚧ Gender: ${data.gender}\n🏥 Patient Status: ${data.isOld ? "Old / Existing Patient (पुराना मरीज)" : "New Patient (नया मरीज)"}\n📍 District: ${data.district}\n🏠 Address: ${data.address}${data.pinCode ? ` - ${data.pinCode}` : ''}\n🩺 Illness/Problem: ${data.problem}\n\n*Confirm hospitalization request?*\n1️⃣ Confirm / पुष्टि करें\n2️⃣ Edit / बदलाव करें\n0️⃣ Main Menu`,
 
   hospDone: (data = {}) =>
     `✅ *Hospitalization Request Received!*\n✅ अस्पताल में भर्ती का अनुरोध प्राप्त हुआ!\n\n${data.uhid ? `🆔 *UHID No:* ${data.uhid}\n` : ""}${data.tokenNumber ? `🎫 *Token No:* ${data.tokenNumber}\n` : ""}\nKindly contact the hospital reception desk.\nकृपया अस्पताल की रिसेप्शन से संपर्क करें\n\n👉 *To return to the main menu, send "Hi" or "Start".*\n👉 मुख्य मेनू पर लौटने के लिए "Hi" या "Start" भेजें।`,
@@ -233,7 +242,10 @@ export const MESSAGES = {
     `👤 *Patient Name / मरीज का नाम*\n*Please enter the patient's full name.*\nकृपया मरीज का पूरा नाम दर्ज करें।\n\n0️⃣ Back | 00 Main Menu`,
 
   medAddress: () =>
-    `🏠 *Please provide your complete delivery address.*\nकृपया अपना पूरा डिलीवरी पता भेजें।\n\n0️⃣ Back | 00 Main Menu`,
+    `🏠 *Delivery Address / डिलीवरी का पता*\n*Please provide your complete delivery address.*\nकृपया अपना पूरा डिलीवरी पता भेजें।\n\n0️⃣ Back | 00 Main Menu`,
+
+  medPinCode: () =>
+    `📮 *PIN Code / पिन कोड*\n*Please enter your 6-digit PIN code for delivery.*\nडिलीवरी के लिए 6 अंकों का पिन कोड दर्ज करें। (उदा: 232104)\n\n0️⃣ Back | 00 Main Menu`,
 
   medDone: () =>
     `✅ *Prescription Received!*\nआपकी रिक्वेस्ट दर्ज कर ली गई है\n\n Our team will confirm the order and delivery details.\nहमारी टीम ऑर्डर और डिलीवरी की जानकारी देगी।\n\n👉 *To return to the main menu, send "Hi" or "Start".*\n👉 मुख्य मेनू पर लौटने के लिए "Hi" या "Start" भेजें।`,
@@ -255,7 +267,7 @@ export const MESSAGES = {
     `❌ *Invalid Mobile Number / अमान्य मोबाइल नंबर*\n\n*Please enter a valid 10-digit mobile number.*\nकृपया 10 अंकों का सही मोबाइल नंबर दर्ज करें। (उदा: 9876543210)\n\n0️⃣ Back | 00 Main Menu`,
 
   invalidPinCode: () =>
-    `❌ *Invalid PIN Code / अमान्य पिन कोड*\n\n*Please enter a valid 6-digit PIN code in your address.*\nकृपया अपने पते में 6 अंकों का सही पिन कोड दर्ज करें। (उदा: 232104)\n\n0️⃣ Back | 00 Main Menu`,
+    `❌ *Invalid PIN Code / अमान्य पिन कोड*\n\n*Please enter a valid 6-digit PIN code.*\nकृपया 6 अंकों का सही पिन कोड दर्ज करें। (उदा: 232104)\n\n0️⃣ Back | 00 Main Menu`,
 
   doctorUnavailable: () =>
     `❌ *Selected Doctor is Unavailable / डॉक्टर उपलब्ध नहीं हैं*\n*The selected doctor is currently offline or inactive. Please select another doctor.*\nचयनित डॉक्टर वर्तमान में उपलब्ध या सक्रिय नहीं हैं। कृपया दूसरे डॉक्टर का चयन करें।`,

@@ -132,6 +132,13 @@ class ConversationService {
             state,
             input,
           );
+        case STEPS.PATIENT_PINCODE:
+          return await opdHandler.handlePatientPinCode(
+            this,
+            phone,
+            state,
+            input,
+          );
         case STEPS.PATIENT_PROBLEM:
           return await opdHandler.handlePatientProblem(
             this,
@@ -206,6 +213,13 @@ class ConversationService {
             state,
             input,
           );
+        case STEPS.HOSP_PINCODE:
+          return await hospitalizationHandler.handleHospPinCode(
+            this,
+            phone,
+            state,
+            input,
+          );
         case STEPS.HOSP_PROBLEM:
           return await hospitalizationHandler.handleHospProblem(
             this,
@@ -253,6 +267,13 @@ class ConversationService {
           return await medicineHandler.handleMedName(this, phone, state, input);
         case STEPS.MED_ADDRESS:
           return await medicineHandler.handleMedAddress(
+            this,
+            phone,
+            state,
+            input,
+          );
+        case STEPS.MED_PINCODE:
+          return await medicineHandler.handleMedPinCode(
             this,
             phone,
             state,
