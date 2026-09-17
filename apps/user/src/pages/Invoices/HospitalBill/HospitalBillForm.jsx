@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import api from "../../../services/api";
 import styles from "./HospitalBillForm.module.css";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const DOCTORS = [
   { id: 1, name: "Abhinav Katiyar", qualification: "MBBS, DNB" },
@@ -284,18 +283,19 @@ export default function HospitalBillForm() {
 
         if (uhid) {
           endpoints.push(
-            `${API_BASE}/api/patients/lookup?value=${encodeURIComponent(uhid)}&type=uhid`,
-            `${API_BASE}/patients/search?uhid=${encodeURIComponent(uhid)}`,
-            `${API_BASE}/patients/uhid/${encodeURIComponent(uhid)}`
+            `/invoices/lookup?uhid=${encodeURIComponent(uhid)}`,
+            `/invoices/uhid/${encodeURIComponent(uhid)}`,
+            `/patients/lookup?value=${encodeURIComponent(uhid)}&type=uhid`,
+            `/patients?search=${encodeURIComponent(uhid)}`
           );
         }
 
         if (bookingNo) {
           endpoints.push(
-            `${API_BASE}/api/patients/lookup?value=${encodeURIComponent(bookingNo)}&type=booking`,
-            `${API_BASE}/patients/search?bookingId=${encodeURIComponent(bookingNo)}`,
-            `${API_BASE}/patients/booking/${encodeURIComponent(bookingNo)}`,
-            `${API_BASE}/bookings/search?bookingId=${encodeURIComponent(bookingNo)}`
+            `/invoices/lookup?bookingNo=${encodeURIComponent(bookingNo)}`,
+            `/invoices/booking/${encodeURIComponent(bookingNo)}`,
+            `/patients/lookup?value=${encodeURIComponent(bookingNo)}&type=booking`,
+            `/bookings?search=${encodeURIComponent(bookingNo)}`
           );
         }
 
@@ -304,20 +304,23 @@ export default function HospitalBillForm() {
 
         for (const endpoint of endpoints) {
           try {
-            const response = await fetch(endpoint, {
+            const response = await api.get(endpoint, {
               signal: controller.signal,
-              credentials: "include",
             });
 
-            if (!response.ok) continue;
-
-            const payload = await response.json();
-            const raw =
-              payload.patient ||
-              payload.data?.patient ||
-              payload.data ||
-              payload.booking ||
-              payload;
+            const payload = response.data;
+            let raw = null;
+            if (payload && payload.patient) {
+              raw = payload.patient;
+            } else if (Array.isArray(payload) && payload.length > 0) {
+              raw = payload[0];
+            } else if (payload && Array.isArray(payload.data) && payload.data.length > 0) {
+              raw = payload.data[0];
+            } else if (payload && payload.data && typeof payload.data === 'object') {
+              raw = payload.data.patient || payload.data;
+            } else {
+              raw = payload;
+            }
 
             if (
               raw &&
@@ -334,6 +337,28 @@ export default function HospitalBillForm() {
               if (Array.isArray(payload.items)) {
                 itemsData = payload.items;
               }
+
+              // If doctor/booking details missing, attempt booking lookup
+              if (!patientData.consultantName && !patientData.doctorName && (raw.name || raw.uhid)) {
+                try {
+                  const bRes = await api.get(`/bookings?search=${encodeURIComponent(raw.uhid || raw.name)}`, { signal: controller.signal });
+                  const bData = bRes.data?.data?.[0] || (Array.isArray(bRes.data) ? bRes.data[0] : null);
+                  if (bData) {
+                    patientData = {
+                      ...patientData,
+                      bookingNo: patientData.bookingNo || bData.booking_id || bData.token_number || '',
+                      hospitalNo: bData.visit_type === 'HOSPITALIZATION' ? (bData.booking_id || '') : (patientData.hospitalNo || ''),
+                      consultantName: bData.doctor_name || '',
+                      doctorName: bData.doctor_name || '',
+                      consultants: bData.doctor_name ? [bData.doctor_name] : [],
+                      admissionDate: bData.preferredDate || bData.date || patientData.admissionDate || '',
+                    };
+                  }
+                } catch {
+                  // Ignore secondary booking lookup error
+                }
+              }
+
               break;
             }
           } catch (requestError) {

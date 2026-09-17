@@ -12,6 +12,7 @@ import { settingsController } from '../modules/settings/settings.controller.js'
 import authRoutes from './auth.routes.js'
 import medicineOrderRoutes from '../modules/medicine/medicineOrder.routes.js'
 import userRoutes from '../modules/user/user.routes.js'
+import invoiceRoutes from '../modules/invoices/invoice.route.js'
 import { parseAnyDate } from '../utils/dateHelpers.js'
 import sql from '../config/database.js'
 
@@ -89,6 +90,9 @@ router.use('/bookings', requireRole(SUPERADMIN, ADMIN, DOCTOR, RECEPTIONIST), bo
 
 // Medicine orders — pharmacy full, receptionist read-only
 router.use('/medicine-orders', requireRole(SUPERADMIN, ADMIN, PHARMACY, RECEPTIONIST, DOCTOR), medicineOrderRoutes)
+
+// Invoices — patient & booking details auto-fill lookup (Superadmin, Admin, Receptionist)
+router.use('/invoices', requireRole(SUPERADMIN, ADMIN, RECEPTIONIST), invoiceRoutes)
 
 // Medicines master list
 router.get('/medicines', requireRole(...STAFF, DOCTOR), async (req, res, next) => {
