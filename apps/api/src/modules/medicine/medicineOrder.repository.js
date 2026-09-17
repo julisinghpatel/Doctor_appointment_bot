@@ -7,12 +7,14 @@ function mapMedicineOrder(row) {
     id: row.id,
     _id: row.id,
     orderId: row.order_id,
+    deliveryAddress: row.delivery_address || '',
     prescriptionUrl: row.prescription_url || '',
-    items: typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []),
-    status: row.status,
+    customerNotes: row.customer_notes || '',
     staffNotes: row.staff_notes || '',
-    totalPrice: Number(row.total_price || 0),
+    status: row.status,
+    source: row.source || 'whatsapp',
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
     patientId: row.patient_id ? {
       id: row.patient_id,
       _id: row.patient_id,
@@ -81,19 +83,20 @@ class MedicineOrderRepository {
   }
 
   async create(data) {
-    const items = data.items || []
+    const deliveryAddress = data.deliveryAddress || data.address || 'N/A'
+    const fullAddress = data.pinCode ? `${deliveryAddress} — ${data.pinCode}` : deliveryAddress
     const [row] = await sql`
       INSERT INTO medicine_orders (
-        order_id, patient_id, delivery_address, prescription_url, items, status, staff_notes, total_price
+        order_id, patient_id, delivery_address, prescription_url, customer_notes, staff_notes, status, source
       ) VALUES (
         ${data.orderId},
         ${data.patientId || null},
-        ${data.deliveryAddress || data.address || 'N/A'},
+        ${fullAddress},
         ${data.prescriptionUrl || ''},
-        ${sql.json(items)},
-        ${data.status || 'pending'},
+        ${data.customerNotes || ''},
         ${data.staffNotes || ''},
-        ${data.totalPrice || 0}
+        ${data.status || 'pending'},
+        ${data.source || 'whatsapp'}
       )
       RETURNING id
     `
