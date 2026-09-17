@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Eye, Edit, CheckCircle, XCircle, BedDouble, Printer } from 'lucide-react'
+import { Search, Eye, Edit, CheckCircle, XCircle, BedDouble, Printer, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Card from '../components/common/Card'
 import PageHeader from '../components/common/PageHeader'
@@ -14,6 +14,7 @@ import { bookingService } from '../services/bookingService'
 import PrintSlipHandler from '../services/PrintSlipHandler'
 import { printService } from '../services/printService'
 import { isMockMode } from '../services/api'
+import { useAuth } from '../hooks/useAuth'
 import { formatDate } from '../utils/formatters'
 import styles from './Hospitalization.module.css'
 
@@ -27,6 +28,8 @@ const getTodayStr = () => {
 
 export default function Hospitalization() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isAdmin = !user?.role || ['admin', 'superadmin', 'super'].includes(String(user?.role).toLowerCase())
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(30)
@@ -151,7 +154,7 @@ export default function Hospitalization() {
               <CheckCircle size={16} />
             </button>
           )}
-          {req.status !== 'cancelled' && (
+          {req.status !== 'cancelled' ? (
             <button
               className={`${styles.actionBtn} ${styles.cancel}`}
               onClick={() => handleStatusChange(req.id, 'cancelled')}
@@ -159,6 +162,16 @@ export default function Hospitalization() {
             >
               <XCircle size={16} />
             </button>
+          ) : (
+            isAdmin && (
+              <button
+                className={`${styles.actionBtn} ${styles.confirm}`}
+                onClick={() => handleStatusChange(req.id, 'pending')}
+                title="Reopen (Set to Pending)"
+              >
+                <RotateCcw size={16} />
+              </button>
+            )
           )}
         </div>
       </td>
@@ -359,6 +372,25 @@ export default function Hospitalization() {
                 </Button>
                 <Button variant="danger" icon={XCircle} onClick={() => handleStatusChange(selectedReq.id, 'cancelled')} disabled={statusMutation.isPending}>
                   Cancel Request
+                </Button>
+              </>
+            ) : selectedReq?.status === 'cancelled' ? (
+              <>
+                {isAdmin && (
+                  <Button
+                    icon={RotateCcw}
+                    onClick={() => handleStatusChange(selectedReq.id, 'pending')}
+                    disabled={statusMutation.isPending}
+                  >
+                    Reopen (Set to Pending)
+                  </Button>
+                )}
+                <Button
+                  icon={Printer}
+                  variant="secondary"
+                  onClick={() => handlePrint(selectedReq)}
+                >
+                  Print Ticket
                 </Button>
               </>
             ) : (

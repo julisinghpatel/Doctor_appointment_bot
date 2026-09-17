@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Eye, CheckCircle, Truck, PackageCheck, XCircle, Pill } from 'lucide-react'
+import { Search, Eye, CheckCircle, Truck, PackageCheck, XCircle, Pill, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Card from '../components/common/Card'
 import PageHeader from '../components/common/PageHeader'
@@ -18,6 +18,7 @@ export default function MedicineOrders() {
   const { user } = useAuth()
   // Receptionists get read-only access (desk queries: "where is my medicine?")
   const canWrite = user?.role !== 'receptionist'
+  const isAdmin = !user?.role || ['admin', 'superadmin', 'super'].includes(String(user?.role).toLowerCase())
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [selectedOrder, setSelectedOrder] = useState(null)
@@ -154,6 +155,11 @@ export default function MedicineOrders() {
                 Cancel Order
               </Button>
             )}
+            {isAdmin && selectedOrder?.status === 'cancelled' && (
+              <Button icon={RotateCcw} onClick={() => handleStatusChange(selectedOrder.id, 'pending')} disabled={statusMutation.isPending}>
+                Reopen (Set to Pending)
+              </Button>
+            )}
             {!canWrite && (
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginRight: 'auto' }}>
                 Read-only access for receptionists
@@ -211,7 +217,7 @@ export default function MedicineOrders() {
                 value={staffNotes}
                 onChange={(e) => setStaffNotes(e.target.value)}
                 placeholder="Enter pricing details or notes..."
-                disabled={!canWrite || selectedOrder.status === 'completed' || selectedOrder.status === 'cancelled'}
+                disabled={!canWrite || selectedOrder.status === 'completed'}
               />
             </div>
           </div>

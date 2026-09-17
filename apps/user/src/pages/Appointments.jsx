@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Download, Eye, Edit, CheckCircle, XCircle, CalendarCheck, Printer } from 'lucide-react'
+import { Search, Download, Eye, Edit, CheckCircle, XCircle, CalendarCheck, Printer, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { bookingService } from '../services/bookingService'
 import { doctorService } from '../services/doctorService'
@@ -32,6 +32,7 @@ export default function Appointments() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const isDoctor = user?.role === 'doctor'
+  const isAdmin = !user?.role || ['admin', 'superadmin', 'super'].includes(String(user?.role).toLowerCase())
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -210,7 +211,7 @@ export default function Appointments() {
               <CheckCircle size={16} />
             </button>
           )}
-          {booking.status !== BOOKING_STATUS.CANCELLED && (
+          {booking.status !== BOOKING_STATUS.CANCELLED ? (
             <button
               className={`${styles.actionBtn} ${styles.cancel}`}
               onClick={() => handleStatusChange(booking.id, BOOKING_STATUS.CANCELLED)}
@@ -218,6 +219,16 @@ export default function Appointments() {
             >
               <XCircle size={16} />
             </button>
+          ) : (
+            isAdmin && (
+              <button
+                className={`${styles.actionBtn} ${styles.confirm}`}
+                onClick={() => handleStatusChange(booking.id, BOOKING_STATUS.PENDING)}
+                title="Reopen (Set to Pending)"
+              >
+                <RotateCcw size={16} />
+              </button>
+            )
           )}
         </div>
       </td>
@@ -478,6 +489,27 @@ export default function Appointments() {
                   }}
                 >
                   Confirm & Print
+                </Button>
+              </>
+            ) : selectedBooking?.status === BOOKING_STATUS.CANCELLED ? (
+              <>
+                {isAdmin && (
+                  <Button
+                    icon={RotateCcw}
+                    onClick={() => {
+                      handleStatusChange(selectedBooking.id, BOOKING_STATUS.PENDING)
+                      setShowDetail(false)
+                    }}
+                  >
+                    Reopen (Set to Pending)
+                  </Button>
+                )}
+                <Button
+                  icon={Printer}
+                  variant="secondary"
+                  onClick={() => handlePrint(selectedBooking)}
+                >
+                  Print Slip
                 </Button>
               </>
             ) : (

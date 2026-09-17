@@ -37,6 +37,19 @@ class MedicineOrderController {
     const { id } = req.params;
     const { status, staffNotes, phone, mobile } = req.body;
 
+    if (status === 'pending') {
+      const existing = await medOrderRepo.findById(id);
+      if (existing && existing.status === 'cancelled') {
+        const role = req.admin?.role?.toLowerCase();
+        if (req.admin && role && role !== 'admin' && role !== 'superadmin' && role !== 'super') {
+          return res.status(403).json({
+            success: false,
+            message: 'Forbidden: Only admin can reopen cancelled medicine orders',
+          });
+        }
+      }
+    }
+
     const order = await medOrderRepo.updateStatus(id, { status, staffNotes });
     if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -76,7 +89,14 @@ class MedicineOrderController {
             `Your medicine order (*${orderNum}*) has been cancelled.\n` +
             `आपका दवा ऑर्डर (*${orderNum}*) रद्द कर दिया गया है।\n\n` +
             (notes ? `📌 *Reason:* ${notes}\n\n` : "") +
-            `📞 For assistance, contact 98838850287 KG Nanda Hospital.`;
+            `📞 For assistance, contact 9838850287 KG Nanda Hospital.`;
+        } else if (status === "pending") {
+          msg =
+            `ℹ️ *Medicine Order Reopened / ऑर्डर पुनः चालू किया गया*\n\n` +
+            `Your medicine order (*${orderNum}*) has been reopened and reset to pending status.\n` +
+            `आपका दवा ऑर्डर (*${orderNum}*) पुनः पेंडिंग स्थिति में कर दिया गया है।\n\n` +
+            (notes ? `📌 *Note:* ${notes}\n\n` : "") +
+            `📞 For any queries, contact 9838850287 KG Nanda Hospital.`;
         }
 
         if (msg) {

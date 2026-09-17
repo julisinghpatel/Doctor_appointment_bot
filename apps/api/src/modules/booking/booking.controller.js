@@ -27,7 +27,17 @@ export const bookingController = {
 
   async updateStatus(req, res, next) {
     try {
-      const booking = await bookingService.updateBookingStatus(req.params.id, req.body.status)
+      const { status } = req.body
+      if (status === 'pending') {
+        const existing = await bookingService.getBookingById(req.params.id)
+        if (existing && existing.status === 'cancelled') {
+          const role = req.admin?.role?.toLowerCase()
+          if (req.admin && role && role !== 'admin' && role !== 'superadmin' && role !== 'super') {
+            return res.status(403).json({ success: false, message: 'Only admin can reopen cancelled bookings' })
+          }
+        }
+      }
+      const booking = await bookingService.updateBookingStatus(req.params.id, status)
       res.json({ success: true, booking })
     } catch (err) { next(err) }
   },
