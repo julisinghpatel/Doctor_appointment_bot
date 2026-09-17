@@ -6,12 +6,17 @@ class InvoiceRepository {
    */
   async findPatientByUhidOrPhone(searchTerm) {
     if (!searchTerm) return null;
+    const cleanSearch = String(searchTerm).trim();
+    const digitsOnly = cleanSearch.replace(/\D/g, '');
+
     const [row] = await sql`
       SELECT * FROM patients
-      WHERE LOWER(uhid) = LOWER(${searchTerm})
-         OR uhid ILIKE ${'%' + searchTerm + '%'}
-         OR phone = ${searchTerm}
-         OR id::text = ${searchTerm}
+      WHERE LOWER(uhid) = LOWER(${cleanSearch})
+         OR uhid ILIKE ${'%' + cleanSearch + '%'}
+         OR phone = ${cleanSearch}
+         OR phone ILIKE ${'%' + cleanSearch + '%'}
+         ${digitsOnly && digitsOnly.length >= 7 ? sql`OR RIGHT(phone, 10) = RIGHT(${digitsOnly}, 10)` : sql``}
+         OR id::text = ${cleanSearch}
       ORDER BY created_at DESC
       LIMIT 1
     `;
@@ -23,6 +28,9 @@ class InvoiceRepository {
    */
   async findBookingForInvoice(searchTerm) {
     if (!searchTerm) return null;
+    const cleanSearch = String(searchTerm).trim();
+    const digitsOnly = cleanSearch.replace(/\D/g, '');
+
     const [row] = await sql`
       SELECT b.*, p.name AS p_name, p.phone AS p_phone, p.age AS p_age, p.gender AS p_gender,
              p.uhid AS p_uhid, p.address AS p_address, p.district AS p_district,
@@ -31,10 +39,12 @@ class InvoiceRepository {
       LEFT JOIN patients p ON b.patient_id = p.id
       LEFT JOIN doctors d ON b.doctor_id = d.id
       LEFT JOIN departments dep ON b.department_id = dep.id
-      WHERE b.booking_id = ${searchTerm}
-         OR b.token_number = ${searchTerm}
-         OR LOWER(p.uhid) = LOWER(${searchTerm})
-         OR p.uhid ILIKE ${'%' + searchTerm + '%'}
+      WHERE b.booking_id ILIKE ${'%' + cleanSearch + '%'}
+         OR b.token_number ILIKE ${'%' + cleanSearch + '%'}
+         OR LOWER(p.uhid) = LOWER(${cleanSearch})
+         OR p.uhid ILIKE ${'%' + cleanSearch + '%'}
+         OR p.phone ILIKE ${'%' + cleanSearch + '%'}
+         ${digitsOnly && digitsOnly.length >= 7 ? sql`OR RIGHT(p.phone, 10) = RIGHT(${digitsOnly}, 10)` : sql``}
       ORDER BY b.created_at DESC
       LIMIT 1
     `;
