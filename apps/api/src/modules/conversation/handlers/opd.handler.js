@@ -8,6 +8,13 @@ import { resolveDate } from '../../../utils/dateHelpers.js'
 
 const getId = (obj) => obj._id || obj.id
 
+const isAnandDoctor = (d) => {
+  if (!d) return false
+  const idStr = String(d.id || d._id || '')
+  if (idStr === '2') return true
+  return /^\s*(dr\.?\s*)?anand\b/i.test(d.name || '')
+}
+
 export const opdHandler = {
   async handleOpdDepartment(service, phone, state, input) {
     const deps = await departmentService.getActiveDepartments()
@@ -44,7 +51,7 @@ export const opdHandler = {
         // New Patient + Gynaecology → show ONLY Dr. Anand
         let docs = await doctorService.getDoctorsByDepartment(deptId)
         if (!docs.length) docs = await doctorService.getActiveDoctors()
-        const drAnandDocs = docs.filter(d => /anand/i.test(d.name))
+        const drAnandDocs = docs.filter(isAnandDoctor)
         const finalDocs = drAnandDocs.length > 0 ? drAnandDocs : docs
 
         await conversationRepo.upsert(phone, {
@@ -81,8 +88,8 @@ export const opdHandler = {
     let docs = await doctorService.getDoctorsByDepartment(deptId)
     if (!docs.length) docs = await doctorService.getActiveDoctors()
 
-    const drAnandDocs = docs.filter(d => /anand/i.test(d.name))
-    const otherDocs = docs.filter(d => !/anand/i.test(d.name))
+    const drAnandDocs = docs.filter(isAnandDoctor)
+    const otherDocs = docs.filter(d => !isAnandDoctor(d))
 
     if (choice === '2') {
       // Others → Dr. Anand ONLY
@@ -95,13 +102,13 @@ export const opdHandler = {
     }
 
     if (choice === '1') {
-      // Infertility → derive visit number from booking history
+      // Infertility → check DB for past infertility visits for this patient/phone
       const patients = await patientService.findAllByPhone(phone)
       const primaryPatient = patients[0]
       const pastVisits = primaryPatient ? await bookingRepo.getLatestInfertilityVisitCount(primaryPatient.id) : 0
 
       if (pastVisits === 0) {
-        // Old patient but no WhatsApp infertility bookings → ask visit number
+        // No past infertility visits found in DB → prompt patient for visit number
         await conversationRepo.upsert(phone, {
           currentStep: STEPS.OPD_INFERTILITY_VISIT,
           stateData: { ...state.stateData, category: 'Infertility' }
@@ -109,7 +116,7 @@ export const opdHandler = {
         return service.sendMessage(phone, MESSAGES.infertilityVisitPrompt())
       }
 
-      // Has past bookings → auto-derive
+      // Has past visits in DB → current visit number is pastVisits + 1
       const currentVisitNumber = pastVisits + 1
       const isAnandTurn = (currentVisitNumber === 1 || currentVisitNumber % 3 === 1)
       const finalDocs = isAnandTurn
@@ -118,7 +125,11 @@ export const opdHandler = {
 
       await conversationRepo.upsert(phone, {
         currentStep: STEPS.OPD_DOCTOR,
-        stateData: { ...state.stateData, category: 'Infertility', visitNumber: currentVisitNumber }
+        stateData: {
+          ...state.stateData,
+          category: 'Infertility',
+          visitNumber: currentVisitNumber
+        }
       })
       return service.sendMessage(phone, MESSAGES.doctors(deptName, finalDocs))
     }
@@ -127,7 +138,8 @@ export const opdHandler = {
   },
 
   async handleInfertilityVisit(service, phone, state, input) {
-    const n = parseInt(input.trim(), 10)
+    const match = input.trim().match(/\d+/)
+    const n = match ? parseInt(match[0], 10) : NaN
     if (isNaN(n) || n < 1) return service.sendMessage(phone, MESSAGES.invalidInput())
 
     const deptId = state?.stateData?.departmentId
@@ -136,8 +148,8 @@ export const opdHandler = {
     let docs = await doctorService.getDoctorsByDepartment(deptId)
     if (!docs.length) docs = await doctorService.getActiveDoctors()
 
-    const drAnandDocs = docs.filter(d => /anand/i.test(d.name))
-    const otherDocs = docs.filter(d => !/anand/i.test(d.name))
+    const drAnandDocs = docs.filter(isAnandDoctor)
+    const otherDocs = docs.filter(d => !isAnandDoctor(d))
 
     const isAnandTurn = (n === 1 || n % 3 === 1)
     const finalDocs = isAnandTurn
@@ -166,15 +178,15 @@ export const opdHandler = {
 
     // Apply Gynaecology doctor filtering
     if (category === 'NewPatient' || category === 'Others') {
-      const drAnand = docs.filter(d => /anand/i.test(d.name))
+      const drAnand = docs.filter(isAnandDoctor)
       if (drAnand.length > 0) docs = drAnand
     } else if (category === 'Infertility') {
       const n = parseInt(visitNumber, 10) || 1
       if (n === 1 || n % 3 === 1) {
-        const drAnand = docs.filter(d => /anand/i.test(d.name))
+        const drAnand = docs.filter(isAnandDoctor)
         if (drAnand.length > 0) docs = drAnand
       } else {
-        const otherDocs = docs.filter(d => !/anand/i.test(d.name))
+        const otherDocs = docs.filter(d => !isAnandDoctor(d))
         if (otherDocs.length > 0) docs = otherDocs
       }
     }

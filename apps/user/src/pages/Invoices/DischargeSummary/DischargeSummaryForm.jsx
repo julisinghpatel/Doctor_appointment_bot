@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import api from "../../../services/api";
 import styles from "./DischargeSummaryForm.module.css";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const DOCTORS = [
   { id: 1, name: "Abhinav Katiyar", qualification: "MBBS, DNB" },
@@ -314,18 +313,19 @@ export default function DischargeSummaryForm() {
 
         if (cleanUhid) {
           endpoints.push(
-            `${API_BASE}/api/patients/lookup?value=${encodeURIComponent(cleanUhid)}&type=uhid`,
-            `${API_BASE}/patients/search?uhid=${encodeURIComponent(cleanUhid)}`,
-            `${API_BASE}/patients/uhid/${encodeURIComponent(cleanUhid)}`
+            `/invoices/lookup?uhid=${encodeURIComponent(cleanUhid)}`,
+            `/invoices/uhid/${encodeURIComponent(cleanUhid)}`,
+            `/patients/lookup?value=${encodeURIComponent(cleanUhid)}&type=uhid`,
+            `/patients?search=${encodeURIComponent(cleanUhid)}`
           );
         }
 
         if (cleanBooking) {
           endpoints.push(
-            `${API_BASE}/api/patients/lookup?value=${encodeURIComponent(cleanBooking)}&type=booking`,
-            `${API_BASE}/patients/search?bookingId=${encodeURIComponent(cleanBooking)}`,
-            `${API_BASE}/patients/booking/${encodeURIComponent(cleanBooking)}`,
-            `${API_BASE}/bookings/search?bookingId=${encodeURIComponent(cleanBooking)}`
+            `/invoices/lookup?bookingNo=${encodeURIComponent(cleanBooking)}`,
+            `/invoices/booking/${encodeURIComponent(cleanBooking)}`,
+            `/patients/lookup?value=${encodeURIComponent(cleanBooking)}&type=booking`,
+            `/bookings?search=${encodeURIComponent(cleanBooking)}`
           );
         }
 
@@ -333,20 +333,23 @@ export default function DischargeSummaryForm() {
 
         for (const endpoint of endpoints) {
           try {
-            const response = await fetch(endpoint, {
+            const response = await api.get(endpoint, {
               signal: controller.signal,
-              credentials: "include",
             });
 
-            if (!response.ok) continue;
-
-            const payload = await response.json();
-            const raw =
-              payload.patient ||
-              payload.data?.patient ||
-              payload.data ||
-              payload.booking ||
-              payload;
+            const payload = response.data;
+            let raw = null;
+            if (payload && payload.patient) {
+              raw = payload.patient;
+            } else if (Array.isArray(payload) && payload.length > 0) {
+              raw = payload[0];
+            } else if (payload && Array.isArray(payload.data) && payload.data.length > 0) {
+              raw = payload.data[0];
+            } else if (payload && payload.data && typeof payload.data === 'object') {
+              raw = payload.data.patient || payload.data;
+            } else {
+              raw = payload;
+            }
 
             if (
               raw &&
