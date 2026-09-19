@@ -179,7 +179,7 @@ ${this._slipBlock(booking, {
   <div class="stats-bar">
     <div><div class="stat-label">UHID:</div><div class="stat-value">${b.uhid || 'KGN-PENDING'}</div></div>
     <div><div class="stat-label">TOKEN:</div><div class="stat-value">${o.tokenDisplay}</div></div>
-    <div><div class="stat-label">DOCTOR FEE:</div><div class="stat-value">${o.feeDisplay}</div></div>
+    <div><div class="stat-label">DOCTOR FEE To be Paid at the time of Final Pharamacy Bill:</div><div class="stat-value">${o.feeDisplay}</div></div>
     <div><div class="stat-label">SOURCE:</div><div class="stat-value">${o.source}</div></div>
   </div>
 

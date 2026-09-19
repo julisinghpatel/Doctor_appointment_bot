@@ -4,6 +4,15 @@
 
 import languageService from "../../utils/language.js";
 
+// Patient Problem static data 
+import {
+  patientProblemsPart1,
+  patientProblemsPart2,
+  patientProblemData,
+  PatientProblem,
+} from "./StaticData/PatientProblem.js";
+
+
 export const STEPS = {
   WELCOME: "WELCOME",
 
@@ -148,8 +157,11 @@ export const MESSAGES = {
   patientPinCode: () =>
     `📮 *PIN Code / पिन कोड*\n*Please enter your 6-digit PIN code.*\n6 अंकों का पिन कोड दर्ज करें। (उदा: 232104)\n\n0️⃣ Back | 00 Main Menu`,
 
-  patientProblem: () =>
-    `🩺 *Health Problem / स्वास्थ्य समस्या*\n*Please briefly describe the patient's health problem.*\nकृपया मरीज की समस्या का संक्षिप्त विवरण दें।\n\n0️⃣ Back | 00 Main Menu`,
+  // patientProblem: () =>
+  //   `🩺 *Health Problem / स्वास्थ्य समस्या*\n*Please briefly describe the patient's health problem.*\nकृपया मरीज की समस्या का संक्षिप्त विवरण दें।\n\n0️⃣ Back | 00 Main Menu`,
+
+// Patient Problem Static data 
+patientProblem: () => patientProblemsPart1(),
 
   review: (data) =>
     `📋 *REVIEW APPOINTMENT REQUEST*\n\n👨‍⚕️ Doctor: ${data.doctorName}\n📅 Preferred Date: ${data.date}\n\n👤 Patient: ${data.name}\n📱 Mobile: ${data.mobile}\n🎂 Age: ${data.age}\n⚧ Gender: ${data.gender}\n🏥 Type: ${data.isOld ? "Old / Existing Patient (पुराना मरीज)" : "New Patient (नया मरीज)"}\n📍 District: ${data.district}\n🏠 Address: ${data.address}${data.pinCode ? ` - ${data.pinCode}` : ''}\n🩺 Problem: ${data.problem}\n\n*Confirm details?*\n1️⃣ Confirm / पुष्टि करें\n2️⃣ Edit / बदलाव करें\n0️⃣ Main Menu`,
